@@ -1,8 +1,9 @@
-import { StrictMode } from 'react'
+import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, useParams } from 'react-router-dom'
 import './index.css'
 import AppLayout from './App.jsx'
+import { apiGet } from './lib/api.js'
 
 const Section = ({ title, children }) => (
 	<section className="space-y-3">
@@ -117,6 +118,7 @@ function CoursesTable() {
 	)
 }
 
+// Placeholder courses data
 const placeholderCourses = [
 	{ 
 		id: 1, 
@@ -157,38 +159,144 @@ const placeholderCourses = [
 ]
 
 function CourseGrid() {
+	const [courses, setCourses] = useState(placeholderCourses); // Start with placeholder data
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState(null);
+	const [usingAPI, setUsingAPI] = useState(false);
+
+	useEffect(() => {
+		loadCourses();
+	}, []);
+
+	const loadCourses = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			console.log('Attempting to fetch courses from API...');
+			
+			// Try to fetch from API with a timeout
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+			
+			const data = await apiGet('/api/courses', { signal: controller.signal });
+			clearTimeout(timeoutId);
+			
+			console.log('Courses fetched from API:', data);
+			if (data && data.length > 0) {
+				setCourses(data);
+				setUsingAPI(true);
+			} else {
+				console.log('API returned empty data, using placeholders');
+				setCourses(placeholderCourses);
+				setUsingAPI(false);
+			}
+		} catch (err) {
+			console.error('Error fetching courses from API:', err);
+			setError(err.message);
+			// Always fallback to placeholder data
+			setCourses(placeholderCourses);
+			setUsingAPI(false);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	if (loading) {
+		return (
+			<div className="text-center py-8">
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-jungle-600 mx-auto mb-4"></div>
+				<p>Loading courses...</p>
+			</div>
+		);
+	}
+
 	return (
-		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-			{placeholderCourses.map(course => (
-				<div key={course.id} className="border rounded-lg overflow-hidden bg-white transition-colors hover:bg-jungle-50">
-					<img 
-						src={course.image} 
-						alt={course.title} 
-						className="h-40 w-full object-cover" 
-					/>
-					<div className="p-4 space-y-2">
-						<h3 className="font-semibold">{course.title}</h3>
-						{course.desc && <p className="text-sm text-gray-600">{course.desc}</p>}
-						<div className="text-sm text-gray-600">
-							{course.isFree ? 'Free' : course.price}
-						</div>
-						<a 
-							href={`/courses/${course.slug}`}
-							className="inline-flex items-center gap-2 rounded-md px-3 py-2 font-medium border border-jungle text-jungle hover:bg-jungle-50"
-						>
-							View
-						</a>
-					</div>
+		<div>
+			{error && !usingAPI && (
+				<div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+					<p className="text-sm text-yellow-800">
+						⚠️ Using offline data. Backend connection failed: {error}
+					</p>
 				</div>
-			))}
+			)}
+			
+			{usingAPI && (
+				<div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+					<p className="text-sm text-green-800">
+						✅ Connected to database - showing live data
+					</p>
+				</div>
+			)}
+			
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+				{courses.map(course => (
+					<div key={course._id || course.id} className="border rounded-lg overflow-hidden bg-white transition-colors hover:bg-jungle-50">
+						<img 
+							src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
+							alt={course.title} 
+							className="h-40 w-full object-cover" 
+						/>
+						<div className="p-4 space-y-2">
+							<h3 className="font-semibold">{course.title}</h3>
+							{(course.description || course.desc) && (
+								<p className="text-sm text-gray-600">{course.description || course.desc}</p>
+							)}
+							<div className="text-sm text-gray-600">
+								{course.isFree ? 'Free' : `Ksh ${course.price}`}
+							</div>
+							<a 
+								href={`/courses/${course.slug}`}
+								className="inline-flex items-center gap-2 rounded-md px-3 py-2 font-medium border border-jungle text-jungle hover:bg-jungle-50"
+							>
+								View
+							</a>
+						</div>
+					</div>
+				))}
+			</div>
 		</div>
 	)
 }
 
-// Simple CourseDetail component for now
+// CourseDetail component that fetches from API
 const CourseDetail = ({ courseSlug }) => {
-	const course = placeholderCourses.find(c => c.slug === courseSlug);
+	const [course, setCourse] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+
+	useEffect(() => {
+		loadCourse();
+	}, [courseSlug]);
+
+	const loadCourse = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			console.log(`Attempting to fetch course: ${courseSlug}`);
+			
+			const data = await apiGet(`/api/courses/${courseSlug}`);
+			console.log('Course fetched from API:', data);
+			setCourse(data);
+		} catch (err) {
+			console.error('Error fetching course from API:', err);
+			setError(err.message);
+			// Fallback to placeholder data
+			const fallbackCourse = placeholderCourses.find(c => c.slug === courseSlug);
+			setCourse(fallbackCourse);
+		} finally {
+			setLoading(false);
+		}
+	};
 	
+	if (loading) {
+		return (
+			<div className="text-center py-8">
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-jungle-600 mx-auto mb-4"></div>
+				<p>Loading course...</p>
+			</div>
+		);
+	}
+
 	if (!course) {
 		return (
 			<div className="text-center py-8">
@@ -206,9 +314,17 @@ const CourseDetail = ({ courseSlug }) => {
 
 	return (
 		<div className="max-w-4xl mx-auto">
+			{error && (
+				<div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+					<p className="text-sm text-yellow-800">
+						⚠️ Using offline data. Backend connection failed: {error}
+					</p>
+				</div>
+			)}
+			
 			<div className="bg-white rounded-lg shadow-lg overflow-hidden">
 				<img 
-					src={course.image} 
+					src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
 					alt={course.title}
 					className="w-full h-64 object-cover"
 				/>
@@ -217,38 +333,54 @@ const CourseDetail = ({ courseSlug }) => {
 						<h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
 						<div className="text-right">
 							<div className="text-2xl font-bold text-jungle-600">
-								{course.isFree ? 'Free' : course.price}
+								{course.isFree ? 'Free' : `Ksh ${course.price}`}
 							</div>
 						</div>
 					</div>
 					
-					<p className="text-gray-600 mb-6">{course.desc}</p>
+					<p className="text-gray-600 mb-6">{course.description || course.desc}</p>
 					
 					<div className="mb-6">
 						<h3 className="text-lg font-semibold mb-3">Course Content</h3>
-						<div className="space-y-2">
-							<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-								<div>
-									<div className="font-medium">Introduction to {course.title}</div>
-									<div className="text-sm text-gray-500">15 minutes</div>
-								</div>
-								<span className="text-green-600 text-sm">✓ Available</span>
+						{course.lessons && course.lessons.length > 0 ? (
+							<div className="space-y-2">
+								{course.lessons.map((lesson, index) => (
+									<div key={lesson._id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+										<div>
+											<div className="font-medium">{lesson.title}</div>
+											{lesson.duration && (
+												<div className="text-sm text-gray-500">{lesson.duration}</div>
+											)}
+										</div>
+										<span className="text-green-600 text-sm">✓ Available</span>
+									</div>
+								))}
 							</div>
-							<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-								<div>
-									<div className="font-medium">Advanced Techniques</div>
-									<div className="text-sm text-gray-500">20 minutes</div>
+						) : (
+							<div className="space-y-2">
+								<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+									<div>
+										<div className="font-medium">Introduction to {course.title}</div>
+										<div className="text-sm text-gray-500">15 minutes</div>
+									</div>
+									<span className="text-green-600 text-sm">✓ Available</span>
 								</div>
-								<span className="text-green-600 text-sm">✓ Available</span>
-							</div>
-							<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-								<div>
-									<div className="font-medium">Practical Application</div>
-									<div className="text-sm text-gray-500">25 minutes</div>
+								<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+									<div>
+										<div className="font-medium">Advanced Techniques</div>
+										<div className="text-sm text-gray-500">20 minutes</div>
+									</div>
+									<span className="text-green-600 text-sm">✓ Available</span>
 								</div>
-								<span className="text-green-600 text-sm">✓ Available</span>
+								<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+									<div>
+										<div className="font-medium">Practical Application</div>
+										<div className="text-sm text-gray-500">25 minutes</div>
+									</div>
+									<span className="text-green-600 text-sm">✓ Available</span>
+								</div>
 							</div>
-						</div>
+						)}
 					</div>
 
 					<div className="flex gap-4">
