@@ -118,20 +118,21 @@ function CoursesTable() {
 }
 
 const placeholderCourses = [
-	{ id: 1, title: 'Soil Health Basics', price: 'Free', image: 'https://images.unsplash.com/photo-1500937386664-56b8b85b0a42?q=80&w=1200&auto=format&fit=crop' },
-	{ id: 2, title: 'Irrigation 101', price: '$15', image: 'https://images.unsplash.com/photo-1597047084890-1ff28efc7170?q=80&w=1200&auto=format&fit=crop' },
-	{ id: 3, title: 'Organic Pest Control', price: '$12', image: 'https://images.unsplash.com/photo-1457530378978-8bac673b8062?q=80&w=1200&auto=format&fit=crop' },
-	{ id: 4, title: 'Market Readiness', price: 'Free', image: 'https://images.unsplash.com/photo-1500631195310-2021c24a076b?q=80&w=1200&auto=format&fit=crop' },
+	{ id: 1, title: 'Soil Health Basics', price: 'Free', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop', desc: 'Build fertile soil for resilient, high-yield crops.' },
+	{ id: 2, title: 'Irrigation 101', price: '$15', image: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=80&w=1600&auto=format&fit=crop', desc: 'Design efficient watering systems to save water and time.' },
+	{ id: 3, title: 'Organic Pest Control', price: '$12', image: 'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?q=80&w=1600&auto=format&fit=crop', desc: 'Protect your farm using safe, sustainable methods.' },
+	{ id: 4, title: 'Market Readiness', price: 'Free', image: 'https://images.unsplash.com/photo-1524594081293-190a2fe0baae?q=80&w=1600&auto=format&fit=crop', desc: 'Package, price, and sell produce with confidence.' },
 ]
 
 function CourseGrid() {
 	return (
 		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 			{placeholderCourses.map(c => (
-				<div key={c.id} className="border rounded-lg overflow-hidden bg-white">
+				<div key={c.id} className="border rounded-lg overflow-hidden bg-white transition-colors hover:bg-jungle-50">
 					<img src={c.image} alt="course" className="h-40 w-full object-cover" />
 					<div className="p-4 space-y-2">
 						<h3 className="font-semibold">{c.title}</h3>
+						{c.desc ? <p className="text-sm text-gray-600">{c.desc}</p> : null}
 						<div className="text-sm text-gray-600">{c.price}</div>
 						<button className="inline-flex items-center gap-2 rounded-md px-3 py-2 font-medium border border-jungle text-jungle hover:bg-jungle-50">View</button>
 					</div>
