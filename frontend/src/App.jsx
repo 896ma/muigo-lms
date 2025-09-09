@@ -26,7 +26,10 @@ function Navbar({ isDark, onToggle }) {
 
 export default function AppLayout() {
 	const [isDark, setIsDark] = useState(false)
-	const containerClass = useMemo(() => isDark ? 'min-h-screen bg-gray-950 text-gray-100' : 'min-h-screen bg-white text-gray-900', [isDark])
+	const containerClass = useMemo(() => isDark 
+		? 'min-h-screen text-gray-100 bg-gradient-to-b from-jungle-900 via-jungle-800 to-gray-950'
+		: 'min-h-screen text-gray-900 bg-gradient-to-b from-jungle-100 via-white to-white'
+	, [isDark])
 	return (
 		<div className={containerClass}>
 			<Navbar isDark={isDark} onToggle={() => setIsDark(v => !v)} />
