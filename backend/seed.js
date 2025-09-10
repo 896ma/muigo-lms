@@ -43,7 +43,7 @@ const sampleCourses = [
         description: 'Master efficient irrigation techniques to optimize water usage and maximize crop yields. Learn about different irrigation systems, water management, and sustainable practices.',
         category: 'Water Management',
         coverImage: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=80&w=1600&auto=format&fit=crop',
-        price: 50,
+        price: 75,
         currency: 'KES',
         isFree: false,
         lessons: [
@@ -76,7 +76,7 @@ const sampleCourses = [
         description: 'Protect your crops using safe, environmentally friendly pest management strategies. Learn about beneficial insects, natural repellents, and integrated pest management.',
         category: 'Pest Management',
         coverImage: 'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?q=80&w=1600&auto=format&fit=crop',
-        price: 50,
+        price: 100,
         currency: 'KES',
         isFree: false,
         lessons: [
@@ -99,6 +99,39 @@ const sampleCourses = [
                 contentHtml: '<h2>Homemade Solutions</h2><p>Create effective pest repellents using common household ingredients...</p>',
                 videoUrl: 'https://example.com/video9',
                 duration: '21 minutes',
+                order: 3
+            }
+        ]
+    },
+    {
+        title: 'Advanced Crop Management',
+        slug: 'advanced-crop-management',
+        description: 'Master advanced techniques for maximizing crop yields and quality. Learn about crop rotation, intercropping, precision farming, and modern agricultural technologies.',
+        category: 'Crop Management',
+        coverImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop',
+        price: 150,
+        currency: 'KES',
+        isFree: false,
+        lessons: [
+            {
+                title: 'Crop Rotation Strategies',
+                contentHtml: '<h2>Planning Your Crop Rotation</h2><p>Learn how to plan effective crop rotations to maintain soil health and prevent pest buildup...</p>',
+                videoUrl: 'https://example.com/video13',
+                duration: '20 minutes',
+                order: 1
+            },
+            {
+                title: 'Intercropping Techniques',
+                contentHtml: '<h2>Growing Multiple Crops Together</h2><p>Discover how to grow different crops together for maximum space utilization and pest control...</p>',
+                videoUrl: 'https://example.com/video14',
+                duration: '18 minutes',
+                order: 2
+            },
+            {
+                title: 'Precision Farming Tools',
+                contentHtml: '<h2>Technology in Agriculture</h2><p>Explore modern tools and technologies that can help optimize your farming operations...</p>',
+                videoUrl: 'https://example.com/video15',
+                duration: '25 minutes',
                 order: 3
             }
         ]

@@ -15,24 +15,37 @@ const PaymentCallback = () => {
     const verifyPayment = async () => {
         try {
             const reference = searchParams.get('reference');
-            if (!reference) {
+            const trxref = searchParams.get('trxref');
+            
+            // Use either reference or trxref parameter
+            const paymentRef = reference || trxref;
+            
+            if (!paymentRef) {
                 setStatus('error');
-                setMessage('No payment reference found');
+                setMessage('No payment reference found in URL');
                 return;
             }
 
-            const result = await apiPost('/api/payments/verify', { reference });
-            setStatus('success');
-            setMessage('Payment successful! You have been enrolled in the course.');
+            console.log('Verifying payment with reference:', paymentRef);
             
-            // Redirect to portal after 3 seconds
-            setTimeout(() => {
-                navigate('/portal');
-            }, 3000);
+            const result = await apiPost('/api/payments/verify', { reference: paymentRef });
+            
+            if (result.message) {
+                setStatus('success');
+                setMessage(result.message);
+                
+                // Redirect to portal after 3 seconds
+                setTimeout(() => {
+                    navigate('/portal');
+                }, 3000);
+            } else {
+                throw new Error('Unexpected response from server');
+            }
 
         } catch (error) {
+            console.error('Payment verification error:', error);
             setStatus('error');
-            setMessage('Payment verification failed: ' + error.message);
+            setMessage('Payment verification failed: ' + (error.message || 'Unknown error'));
         }
     };
 
