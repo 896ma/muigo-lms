@@ -1,4 +1,5 @@
-@import "tailwindcss";
+/* Using CDN Tailwind for testing */
+@import url('https://cdn.tailwindcss.com');
 
 html, body, #root { height: 100%; }
 

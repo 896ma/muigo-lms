@@ -175,8 +175,11 @@ async function seedDatabase() {
     try {
         console.log('🌱 Starting database seeding...');
         
+        // Use the same fallback URI as server.js
+        const mongoUri = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
+        
         // Connect to MongoDB Atlas
-        await mongoose.connect(process.env.MONGO_URI, {
+        await mongoose.connect(mongoUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });

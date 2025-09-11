@@ -11,6 +11,8 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
+    "dev:windows": "start-dev.bat",
+    "dev:powershell": "powershell -ExecutionPolicy Bypass -File start-dev.ps1",
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "start:backend": "cd backend && npm start",
     "start:frontend": "cd frontend && npm run build && npm run preview",
@@ -44,6 +46,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "mongoose": "^8.18.1"
+    "mongoose": "^8.18.1",
+    "node-fetch": "^3.3.2"
   }
 }

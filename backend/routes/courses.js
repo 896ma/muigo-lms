@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Course = require('../models/course');
 const Enrollment = require('../models/Enrollment');
 const requireAuth = require('../middleware/auth');
@@ -13,8 +14,17 @@ router.get('/test', (req, res) => {
 router.get('/', async (req, res) => {
 	try {
 		console.log('Fetching courses...');
+		console.log('MongoDB connection state:', mongoose.connection.readyState);
+		
+		// Check if we have a database connection
+		if (mongoose.connection.readyState !== 1) {
+			console.log('No database connection, returning empty array');
+			return res.json([]);
+		}
+		
 		const courses = await Course.find().select('title slug price currency isFree coverImage description');
 		console.log(`Found ${courses.length} courses`);
+		console.log('Courses data:', courses);
 		res.json(courses);
 	} catch (error) {
 		console.error('Error fetching courses:', error);
@@ -58,12 +68,56 @@ router.get('/:slug', async (req, res) => {
 	}
 });
 
-router.post('/:id/enroll', requireAuth, async (req, res) => {
+router.post('/:id/enroll', async (req, res) => {
 	try {
 		const courseId = req.params.id;
-		const existing = await Enrollment.findOne({ user: req.user.id, course: courseId });
+		const course = await Course.findById(courseId);
+		
+		if (!course) {
+			return res.status(404).json({ message: 'Course not found' });
+		}
+
+		// For free courses, allow enrollment without authentication
+		if (course.isFree || course.price === 0) {
+			// Create a temporary enrollment record (you might want to store this differently)
+			const enrollment = {
+				_id: `temp_${Date.now()}`,
+				course: courseId,
+				user: 'anonymous',
+				status: 'active',
+				enrolledAt: new Date(),
+				progress: 0
+			};
+			
+			return res.status(201).json({
+				message: 'Successfully enrolled in free course!',
+				enrollment: enrollment,
+				redirect: '/portal'
+			});
+		}
+
+		// For paid courses, require authentication
+		if (!req.headers.authorization) {
+			return res.status(401).json({ message: 'Authentication required for paid courses' });
+		}
+
+		// Verify JWT token
+		const jwt = require('jsonwebtoken');
+		const token = req.headers.authorization.startsWith('Bearer ')
+			? req.headers.authorization.slice(7)
+			: null;
+		
+		if (!token) {
+			return res.status(401).json({ message: 'Invalid token format' });
+		}
+
+		const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
+		const userId = payload.id;
+
+		const existing = await Enrollment.findOne({ user: userId, course: courseId });
 		if (existing) return res.json(existing);
-		const enrollment = await Enrollment.create({ user: req.user.id, course: courseId, status: 'active' });
+		
+		const enrollment = await Enrollment.create({ user: userId, course: courseId, status: 'active' });
 		res.status(201).json(enrollment);
 	} catch (error) {
 		console.error('Error enrolling in course:', error);

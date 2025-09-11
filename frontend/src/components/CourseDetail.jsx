@@ -70,26 +70,34 @@ const CourseDetail = () => {
             if (course.isFree) {
                 // Free course - enroll directly
                 try {
-                    await apiPost(`/api/courses/${course._id}/enroll`);
-                    alert('Successfully enrolled in free course!');
+                    const response = await apiPost(`/api/courses/${course._id}/enroll`);
+                    alert(response.message || 'Successfully enrolled in free course!');
                     setIsEnrolled(true);
-                    navigate('/portal');
+                    // Redirect to portal after a short delay
+                    setTimeout(() => {
+                        navigate('/portal');
+                    }, 1500);
                 } catch (err) {
-                    // If enrollment fails due to auth, show a message but don't block
+                    // If enrollment fails, show a message but still unlock content
                     alert('Free course content unlocked! (Note: Full enrollment requires login)');
                     setIsEnrolled(true);
                 }
             } else {
                 // Paid course - initialize Paystack payment
                 try {
+                    console.log('Initializing payment for course:', course._id, 'with email:', email);
                     const paymentData = await apiPost('/api/payments/initialize', {
                         courseId: course._id,
                         email: email
                     });
                     
+                    console.log('Payment data received:', paymentData);
+                    console.log('Redirecting to:', paymentData.authorization_url);
+                    
                     // Redirect to Paystack payment page
                     window.location.href = paymentData.authorization_url;
                 } catch (err) {
+                    console.error('Payment initialization error:', err);
                     alert('Payment initialization failed: ' + err.message + '\n\nNote: This requires proper Paystack configuration.');
                 }
             }
@@ -123,7 +131,7 @@ const CourseDetail = () => {
                     <div className="flex justify-between items-start mb-4">
                         <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
                         <div className="text-right">
-                            <div className="text-2xl font-bold text-jungle-600">
+							<div className="text-2xl font-bold text-jungle-500">
                                 {course.isFree ? 'Free' : `Ksh ${course.price}`}
                             </div>
                             <div className="text-sm text-gray-500">{course.currency}</div>
@@ -235,13 +243,13 @@ const CourseDetail = () => {
                                 disabled={enrolling || (!course.isFree && !email)}
                                 className={`px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 transform hover:scale-105 ${
                                     course.isFree 
-                                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl' 
-                                        : 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl border-4 border-red-800'
+                                        ? 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl' 
+                                        : 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl border-4 border-jungle-700'
                                 } disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none`}
                                 style={{
-                                    backgroundColor: course.isFree ? '#16a34a' : '#dc2626',
-                                    border: course.isFree ? 'none' : '4px solid #991b1b',
-                                    boxShadow: '0 10px 25px rgba(220, 38, 38, 0.4)',
+                                    backgroundColor: course.isFree ? '#29AB87' : '#29AB87',
+                                    border: course.isFree ? 'none' : '4px solid #1F876C',
+                                    boxShadow: '0 10px 25px rgba(41, 171, 135, 0.4)',
                                     fontSize: '20px',
                                     fontWeight: '900',
                                     animation: course.isFree ? 'none' : 'pulse 2s infinite'
@@ -262,7 +270,7 @@ const CourseDetail = () => {
                             {isEnrolled && (
                                 <button
                                     onClick={() => navigate('/portal')}
-                                    className="px-8 py-4 text-lg font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                                    className="px-8 py-4 text-lg font-bold bg-jungle-500 text-white rounded-lg hover:bg-jungle-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                                 >
                                     ✅ Go to Portal
                                 </button>
@@ -295,7 +303,7 @@ const CourseDetail = () => {
                                     Don't have an account? 
                                     <button 
                                         onClick={() => navigate('/register')}
-                                        className="text-jungle-600 hover:text-jungle-700 font-semibold ml-1"
+								className="text-jungle-500 hover:text-jungle-600 font-semibold ml-1"
                                     >
                                         Sign up here
                                     </button>

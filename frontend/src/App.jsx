@@ -12,15 +12,15 @@ function Navbar({ isDark }) {
 					<ul className="flex gap-1 text-sm">
 						<li><Link to="/" className={`px-2 py-1 rounded ${hoverClass} ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Home</Link></li>
 						<li><Link to="/courses" className={`px-2 py-1 rounded ${hoverClass} ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Courses</Link></li>
+						<li><Link to="/login" className={`px-2 py-1 rounded ${hoverClass} ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Login</Link></li>
 						<li><Link to="/register" className={`px-2 py-1 rounded ${hoverClass} ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Register</Link></li>
-						<li><Link to="/portal" className={`px-2 py-1 rounded ${hoverClass} ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Farmer Portal</Link></li>
 						<li><Link to="/admin" className={`px-2 py-1 rounded ${hoverClass} ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Admin</Link></li>
 					</ul>
-				</div>
+				</div>|
 			</div>
 		</nav>
 	)
-}
+} 
 
 export default function AppLayout() {
 	const [isDark] = useState(false)

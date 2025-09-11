@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        jungle: {
+                            DEFAULT: '#29AB87',
+                            50: '#EDF9F5',
+                            100: '#D5F2E8',
+                            200: '#AEE6D3',
+                            300: '#80D6BA',
+                            400: '#52C5A1',
+                            500: '#29AB87',
+                            600: '#1F876C',
+                            700: '#176654',
+                            800: '#104A3E',
+                            900: '#0A332C',
+                        },
+                        maroon: {
+                            DEFAULT: '#800000',
+                            50: '#FDECEC',
+                            100: '#F9D6D6',
+                            200: '#F2ADAD',
+                            300: '#EA8484',
+                            400: '#D95C5C',
+                            500: '#B23A3A',
+                            600: '#8F2E2E',
+                            700: '#732525',
+                            800: '#591D1D',
+                            900: '#401515',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-2xl font-bold mb-4">Color Test Page</h1>
+    
+    <div class="space-y-4">
+        <div class="p-4 bg-maroon-600 text-white rounded">
+            Maroon 600 Background
+        </div>
+        
+        <div class="p-4 bg-maroon-500 text-white rounded">
+            Maroon 500 Background
+        </div>
+        
+        <div class="p-4 bg-jungle-600 text-white rounded">
+            Jungle 600 Background
+        </div>
+        
+        <div class="p-4 bg-jungle-500 text-white rounded">
+            Jungle 500 Background
+        </div>
+        
+        <button class="px-4 py-2 bg-maroon-600 text-white rounded hover:bg-maroon-700">
+            Maroon Button
+        </button>
+        
+        <button class="px-4 py-2 bg-jungle-600 text-white rounded hover:bg-jungle-700">
+            Jungle Button
+        </button>
+    </div>
+</body>
+</html>
+
