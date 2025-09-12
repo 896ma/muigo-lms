@@ -5,6 +5,11 @@ import './index.css'
 import AppLayout from './App.jsx'
 import { apiGet } from './lib/api.js'
 
+// Helper function to get API base URL
+const getApiBaseUrl = () => {
+	return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000');
+};
+
 const Section = ({ title, children }) => (
 	<section className="space-y-3">
 		<h2 className="text-2xl font-semibold text-jungle">{title}</h2>
@@ -59,7 +64,7 @@ const Login = () => {
 		setMessage('');
 
 		try {
-			const response = await fetch('http://localhost:5000/api/auth/login', {
+			const response = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -163,7 +168,7 @@ const Register = () => {
 		setMessage('');
 
 		try {
-			const response = await fetch('http://localhost:5000/api/auth/register', {
+			const response = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -301,7 +306,7 @@ const Admin = () => {
 	const fetchStats = async () => {
 		try {
 			const token = localStorage.getItem('token');
-			const response = await fetch('http://localhost:5000/api/admin/stats', {
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/stats`, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json'
@@ -317,7 +322,7 @@ const Admin = () => {
 	const fetchUsers = async () => {
 		try {
 			const token = localStorage.getItem('token');
-			const response = await fetch('http://localhost:5000/api/admin/users', {
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/users`, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json'
@@ -432,6 +437,7 @@ const Admin = () => {
 }
 
 import ProgressBar from './components/ProgressBar.jsx'
+import PaymentCallback from './components/PaymentCallback.jsx'
 
 // Global function to refresh enrollments
 let refreshEnrollments = null;
@@ -464,7 +470,7 @@ const Portal = () => {
 	const fetchEnrollments = async () => {
 		try {
 			const token = localStorage.getItem('token');
-			const response = await fetch('http://localhost:5000/api/enrollments/me', {
+			const response = await fetch(`${getApiBaseUrl()}/api/enrollments/me`, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json'
@@ -472,10 +478,16 @@ const Portal = () => {
 			});
 			
 			if (response.ok) {
-				const data = await response.json();
+			const data = await response.json();
 				console.log('Enrollments fetched:', data);
 				console.log('Number of enrollments:', data.length);
-				setEnrollments(data);
+				console.log('Enrollment details:', data.map(e => ({
+					id: e._id,
+					courseTitle: e.course?.title,
+					enrolledAt: e.enrolledAt,
+					status: e.status
+				})));
+			setEnrollments(data);
 			} else {
 				console.error('Failed to fetch enrollments:', response.status);
 				const errorText = await response.text();
@@ -524,12 +536,24 @@ const Portal = () => {
 				<div className="rounded border p-4 bg-white">
 					<div className="flex justify-between items-center mb-4">
 						<h3 className="font-semibold">My Enrolled Courses</h3>
-						<button 
-							onClick={fetchEnrollments}
-							className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors"
-						>
-							Refresh
-						</button>
+						<div className="flex gap-2">
+							<button 
+								onClick={fetchEnrollments}
+								className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors"
+							>
+								Refresh
+							</button>
+							<button 
+								onClick={() => {
+									localStorage.removeItem('token');
+									localStorage.removeItem('user');
+									window.location.href = '/login';
+								}}
+								className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+							>
+								Logout
+							</button>
+						</div>
 					</div>
 					{loading ? (
 						<div className="text-center py-4">
@@ -726,11 +750,11 @@ function CourseGrid() {
 				{courses.map(course => (
 					<div key={course._id || course.id} className="border rounded-lg overflow-hidden bg-white transition-colors hover:bg-jungle-50 group">
 						<div className="relative overflow-hidden">
-							<img 
-								src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
-								alt={course.title} 
+						<img 
+							src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
+							alt={course.title} 
 								className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-105" 
-							/>
+						/>
 							<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
 						</div>
 						<div className="p-4 space-y-2">
@@ -761,9 +785,12 @@ const CourseDetail = ({ courseSlug }) => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [enrolling, setEnrolling] = useState(false);
-	const [email, setEmail] = useState('');
+	const [phoneNumber, setPhoneNumber] = useState('');
 	const [isEnrolled, setIsEnrolled] = useState(false);
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
+	const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+	const [paymentStatus, setPaymentStatus] = useState(null);
+	const [paymentReference, setPaymentReference] = useState(null);
 
 	useEffect(() => {
 		loadCourse();
@@ -818,22 +845,25 @@ const CourseDetail = ({ courseSlug }) => {
 	};
 
 	const handleEnroll = async () => {
-		if (!course.isFree && !email) {
-			alert('Please enter your email address for payment');
-			return;
-		}
-
 		try {
 			setEnrolling(true);
 			
 			if (course.isFree) {
-				// Free course - enroll directly without authentication
+				// Free course - enroll directly, with auth if available
 				try {
-					const response = await fetch(`http://localhost:5000/api/courses/${course._id}/enroll`, {
+					const token = localStorage.getItem('token');
+					const headers = {
+						'Content-Type': 'application/json'
+					};
+					
+					// Add auth header if user is logged in
+					if (token) {
+						headers['Authorization'] = `Bearer ${token}`;
+					}
+					
+					const response = await fetch(`${getApiBaseUrl()}/api/courses/${course._id}/enroll`, {
 						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						}
+						headers: headers
 					});
 					
 					if (response.ok) {
@@ -841,6 +871,12 @@ const CourseDetail = ({ courseSlug }) => {
 						console.log('Enrollment response:', data);
 						alert(data.message || 'Successfully enrolled in free course!');
 						setIsEnrolled(true);
+						
+						// Refresh enrollments if portal is open and user is logged in
+						if (refreshEnrollments && token) {
+							console.log('Refreshing enrollments...');
+							refreshEnrollments();
+						}
 						
 						// Open first lesson if available
 						if (course.lessons && course.lessons.length > 0) {
@@ -859,49 +895,135 @@ const CourseDetail = ({ courseSlug }) => {
 					alert('Enrollment failed. Please try again or contact support.');
 				}
 			} else {
-				// Paid course - require authentication
+				// Paid course - show payment options
 				if (!isAuthenticated) {
 					alert('Please log in to enroll in paid courses. You will be redirected to the login page.');
 					window.location.href = '/login';
 					return;
 				}
 
-				// Initialize Paystack payment
-				try {
-					console.log('Initializing payment for course:', course._id, 'with email:', email);
-					const token = localStorage.getItem('token');
-					const response = await fetch('http://localhost:5000/api/payments/initialize', {
-						method: 'POST',
-						headers: {
-							'Authorization': `Bearer ${token}`,
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({
-							courseId: course._id,
-							email: email
-						})
-					});
-					
-					if (response.ok) {
-						const paymentData = await response.json();
-						console.log('Payment data received:', paymentData);
-						console.log('Redirecting to:', paymentData.authorization_url);
-						
-						// Redirect to Paystack payment page
-						window.location.href = paymentData.authorization_url;
-					} else {
-						throw new Error('Payment initialization failed');
-					}
-				} catch (err) {
-					console.error('Payment initialization error:', err);
-					alert('Payment initialization failed: ' + err.message + '\n\nNote: This requires proper Paystack configuration.');
-				}
+				setShowPaymentOptions(true);
 			}
 		} catch (err) {
 			alert('Enrollment failed: ' + err.message);
 		} finally {
 			setEnrolling(false);
 		}
+	};
+
+	const handleMpesaPayment = async () => {
+		if (!phoneNumber) {
+			alert('Please enter your phone number for M-Pesa payment');
+			return;
+		}
+
+		try {
+			setEnrolling(true);
+			console.log('Initializing M-Pesa payment for course:', course._id, 'with phone:', phoneNumber);
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/payments/initialize`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					courseId: course._id,
+					phoneNumber: phoneNumber
+				})
+			});
+			
+			if (response.ok) {
+				const paymentData = await response.json();
+				console.log('M-Pesa payment data received:', paymentData);
+				
+				// Store payment reference for verification
+				setPaymentReference(paymentData.reference);
+				setPaymentStatus('pending');
+				setShowPaymentOptions(false);
+				
+				// Check if we have a redirect URL for M-Pesa authorization
+				if (paymentData.redirect_url || paymentData.authorization_url) {
+					const authUrl = paymentData.redirect_url || paymentData.authorization_url;
+					console.log('Redirecting to M-Pesa authorization URL:', authUrl);
+					
+					// Open M-Pesa authorization page in a new window
+					window.open(authUrl, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes');
+					
+					// Show message to user
+					alert('M-Pesa payment page opened. Please complete the payment on the new page. You will be redirected back here once payment is complete.');
+					
+					// Start polling for payment status
+					startPaymentVerification(paymentData.reference);
+				} else {
+					// Fallback message
+					alert(paymentData.message || 'M-Pesa payment initialized. Please check your phone to complete payment.');
+					
+					// Start polling for payment status
+					startPaymentVerification(paymentData.reference);
+				}
+			} else {
+				const errorData = await response.json();
+				console.error('M-Pesa payment error response:', errorData);
+				throw new Error(errorData.message || 'M-Pesa payment initialization failed');
+			}
+		} catch (err) {
+			console.error('M-Pesa payment initialization error:', err);
+			alert('M-Pesa payment initialization failed: ' + err.message);
+		} finally {
+			setEnrolling(false);
+		}
+	};
+
+	const startPaymentVerification = (reference) => {
+		const checkPaymentStatus = async () => {
+			try {
+				const token = localStorage.getItem('token');
+				const response = await fetch(`${getApiBaseUrl()}/api/payments/verify`, {
+					method: 'POST',
+					headers: {
+						'Authorization': `Bearer ${token}`,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ reference })
+				});
+
+				if (response.ok) {
+					const data = await response.json();
+					console.log('Payment verification response:', data);
+					
+					if (data.message && data.message.includes('successful')) {
+						setPaymentStatus('success');
+						setIsEnrolled(true);
+						alert('Payment successful! You are now enrolled in the course.');
+						
+						// Refresh enrollments if portal is open
+						if (refreshEnrollments) {
+							refreshEnrollments();
+						}
+						
+						// Clear payment status
+						setPaymentReference(null);
+						setPaymentStatus(null);
+					} else if (data.status === 'pending') {
+						// Payment is still pending, continue waiting
+						console.log('Payment still pending...');
+					}
+				}
+			} catch (error) {
+				console.error('Payment verification error:', error);
+			}
+		};
+
+		// Check payment status every 5 seconds for 2 minutes
+		const interval = setInterval(checkPaymentStatus, 5000);
+		setTimeout(() => {
+			clearInterval(interval);
+			if (paymentStatus === 'pending') {
+				setPaymentStatus('timeout');
+				alert('Payment verification timed out. Please try again or contact support.');
+			}
+		}, 120000); // 2 minutes timeout
 	};
 
 	const loadCourse = async () => {
@@ -922,7 +1044,7 @@ const CourseDetail = ({ courseSlug }) => {
 				// For paid courses, check if user is enrolled
 				try {
 					const token = localStorage.getItem('token');
-					const response = await fetch(`http://localhost:5000/api/enrollments/me`, {
+					const response = await fetch(`${getApiBaseUrl()}/api/enrollments/me`, {
 						headers: {
 							'Authorization': `Bearer ${token}`,
 							'Content-Type': 'application/json'
@@ -996,11 +1118,11 @@ const CourseDetail = ({ courseSlug }) => {
 			
 			<div className="bg-white rounded-lg shadow-lg overflow-hidden group">
 				<div className="relative overflow-hidden">
-					<img 
-						src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
-						alt={course.title}
+				<img 
+					src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
+					alt={course.title}
 						className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-					/>
+				/>
 					<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
 				</div>
 				<div className="p-6">
@@ -1100,9 +1222,34 @@ const CourseDetail = ({ courseSlug }) => {
 						<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
 							<h4 className="font-semibold text-yellow-800 mb-2">Course Access Required</h4>
 							<p className="text-yellow-700 text-sm">
-								This course requires payment. Enter your email below to proceed with payment.
+								This course requires payment. Click "Pay & Enroll" to proceed with M-Pesa payment.
 							</p>
 						</div>
+					)}
+
+					{paymentStatus === 'pending' && (
+						<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+							<div className="flex items-center justify-between">
+								<div className="flex items-center">
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
+									<div>
+										<h4 className="font-semibold text-blue-800 mb-1">Payment in Progress</h4>
+										<p className="text-blue-700 text-sm">
+											M-Pesa payment prompt sent to your phone. Please check your phone to complete payment.
+										</p>
+										<p className="text-blue-600 text-xs mt-1">
+											Reference: {paymentReference}
+										</p>
+									</div>
+								</div>
+								<button
+									onClick={() => startPaymentVerification(paymentReference)}
+									className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+								>
+									Check Status
+						</button>
+					</div>
+				</div>
 					)}
 
 					<div className="bg-gray-50 rounded-lg p-6 border-2 border-dashed border-gray-200">
@@ -1116,28 +1263,13 @@ const CourseDetail = ({ courseSlug }) => {
 									: `Get full access to this course for just Ksh ${course.price}`
 								}
 							</p>
-						</div>
+			</div>
 
 						<div className="flex flex-col sm:flex-row gap-4 items-center">
-							{!isEnrolled && !course.isFree && (
-								<div className="flex-1 w-full">
-									<label className="block text-sm font-medium text-gray-700 mb-2">
-										Email Address (for payment receipt)
-									</label>
-									<input
-										type="email"
-										placeholder="Enter your email address"
-										value={email}
-										onChange={(e) => setEmail(e.target.value)}
-										className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-jungle-500 focus:border-jungle-500 text-lg"
-										required
-									/>
-								</div>
-							)}
 							
 							<button
 								onClick={handleEnroll}
-								disabled={enrolling || (!course.isFree && !email)}
+								disabled={enrolling}
 								className={`px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 transform hover:scale-105 ${
 									course.isFree 
 										? 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl' 
@@ -1177,6 +1309,91 @@ const CourseDetail = ({ courseSlug }) => {
 					</div>
 				</div>
 			</div>
+
+			{/* Payment Options Modal */}
+			{showPaymentOptions && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="text-lg font-semibold">Choose Payment Method</h3>
+							<button
+								onClick={() => setShowPaymentOptions(false)}
+								className="text-gray-500 hover:text-gray-700"
+							>
+								✕
+							</button>
+						</div>
+						
+						<div className="mb-4">
+							<p className="text-gray-600 mb-2">Course: <strong>{course.title}</strong></p>
+							<p className="text-gray-600 mb-4">Amount: <strong>Ksh {course.price}</strong></p>
+						</div>
+
+						{/* M-Pesa Payment Option */}
+						<div className="border border-gray-200 rounded-lg p-4 mb-4">
+							<div className="flex items-center mb-3">
+								<div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+									<img 
+										src="https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=40&h=40&fit=crop&crop=center" 
+										alt="M-Pesa" 
+										className="w-8 h-8 rounded"
+										onError={(e) => {
+											e.target.style.display = 'none';
+											e.target.nextSibling.style.display = 'block';
+										}}
+									/>
+									<span className="text-white font-bold text-lg" style={{display: 'none'}}>M</span>
+								</div>
+								<div>
+									<h4 className="font-semibold text-gray-800">M-Pesa Mobile Money</h4>
+									<p className="text-sm text-gray-600">Pay using your M-Pesa account</p>
+								</div>
+							</div>
+							
+							<div className="mb-3">
+								<label className="block text-sm font-medium text-gray-700 mb-1">
+									Phone Number
+								</label>
+								<input
+									type="tel"
+									placeholder="07XX XXX XXX"
+									value={phoneNumber}
+									onChange={(e) => setPhoneNumber(e.target.value)}
+									className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+								/>
+								<p className="text-xs text-gray-500 mt-1">Enter your M-Pesa registered phone number</p>
+							</div>
+							
+							<button
+								onClick={handleMpesaPayment}
+								disabled={enrolling || !phoneNumber}
+								className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{enrolling ? 'Processing...' : 'Pay with M-Pesa'}
+							</button>
+						</div>
+
+						{/* Additional Mobile Money Options */}
+						<div className="text-center text-sm text-gray-500 mb-4">
+							<p>Other mobile money options available through Paystack:</p>
+							<div className="flex justify-center space-x-4 mt-2">
+								<span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Airtel Money</span>
+								<span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">T-Kash</span>
+								<span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">Equitel</span>
+							</div>
+						</div>
+
+						<div className="text-center">
+							<button
+								onClick={() => setShowPaymentOptions(false)}
+								className="text-gray-500 hover:text-gray-700 text-sm"
+							>
+								Cancel
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };
@@ -1202,6 +1419,7 @@ const router = createBrowserRouter([
       { path: 'register', element: <Register /> },
       { path: 'admin', element: <Admin /> },
       { path: 'portal', element: <Portal /> },
+      { path: 'payment-callback', element: <PaymentCallback /> },
     ],
   },
 ])

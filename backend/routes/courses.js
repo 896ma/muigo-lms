@@ -79,7 +79,55 @@ router.post('/:id/enroll', async (req, res) => {
 
 		// For free courses, allow enrollment without authentication
 		if (course.isFree || course.price === 0) {
-			// Create a temporary enrollment record for free courses
+			// If user is authenticated, create a real enrollment record
+			if (req.headers.authorization) {
+				try {
+					const jwt = require('jsonwebtoken');
+					const token = req.headers.authorization.startsWith('Bearer ')
+						? req.headers.authorization.slice(7)
+						: null;
+					
+					if (token) {
+						const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
+						const mongoose = require('mongoose');
+						const userId = new mongoose.Types.ObjectId(payload.id);
+
+						// Check if already enrolled
+						const existing = await Enrollment.findOne({ user: userId, course: courseId });
+						if (existing) {
+							return res.status(200).json({
+								message: 'Already enrolled in this course',
+								enrollment: existing
+							});
+						}
+						
+						// Create real enrollment record
+						console.log('Creating enrollment for user:', userId, 'course:', courseId);
+						const enrollment = await Enrollment.create({ 
+							user: userId, 
+							course: courseId, 
+							status: 'active',
+							enrolledAt: new Date(),
+							progress: 0
+						});
+						console.log('Enrollment created:', enrollment._id);
+
+						// Populate course data for response
+						await enrollment.populate('course', 'title slug coverImage price currency description');
+						console.log('Enrollment populated:', enrollment);
+						
+						return res.status(201).json({
+							message: 'Successfully enrolled in free course!',
+							enrollment: enrollment
+						});
+					}
+				} catch (err) {
+					console.error('Auth error for free course:', err);
+					// Fall through to anonymous enrollment
+				}
+			}
+			
+			// Create a temporary enrollment record for anonymous users
 			const enrollment = {
 				_id: `temp_${Date.now()}`,
 				course: courseId,
@@ -112,7 +160,8 @@ router.post('/:id/enroll', async (req, res) => {
 		}
 
 		const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
-		const userId = payload.id;
+		const mongoose = require('mongoose');
+		const userId = new mongoose.Types.ObjectId(payload.id);
 
 		// Check if already enrolled
 		const existing = await Enrollment.findOne({ user: userId, course: courseId });
@@ -124,6 +173,7 @@ router.post('/:id/enroll', async (req, res) => {
 		}
 		
 		// Create enrollment record
+		console.log('Creating paid course enrollment for user:', userId, 'course:', courseId);
 		const enrollment = await Enrollment.create({ 
 			user: userId, 
 			course: courseId, 
@@ -131,9 +181,11 @@ router.post('/:id/enroll', async (req, res) => {
 			enrolledAt: new Date(),
 			progress: 0
 		});
+		console.log('Paid course enrollment created:', enrollment._id);
 
 		// Populate course data for response
 		await enrollment.populate('course', 'title slug coverImage price currency description');
+		console.log('Paid course enrollment populated:', enrollment);
 		
 		res.status(201).json({
 			message: 'Successfully enrolled in course!',

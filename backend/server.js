@@ -4,8 +4,10 @@ const express = require('express');
 // Set default environment variables if not provided
 process.env.MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_this_in_production';
-process.env.PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_live_a8a3c5253cdd0c91a90ceac371cfaea2f6bdeeb5';
-process.env.PAYSTACK_PUBLIC_KEY = process.env.PAYSTACK_PUBLIC_KEY || 'pk_live_35a44b788e258576c74da0b84e4b9b75250ed203';
+// Paystack configuration - will use keys from .env file
+// Make sure to set PAYSTACK_SECRET_KEY and PAYSTACK_PUBLIC_KEY in your .env file
+console.log('Paystack Secret Key loaded:', process.env.PAYSTACK_SECRET_KEY ? 'Yes' : 'No');
+console.log('Paystack Public Key loaded:', process.env.PAYSTACK_PUBLIC_KEY ? 'Yes' : 'No');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -24,7 +26,7 @@ app.use(express.json());
 app.use(cookieParser());
 // CORS configuration - allow all origins for development
 app.use(cors({ 
-	origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+	origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
