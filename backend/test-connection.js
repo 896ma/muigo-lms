@@ -7,7 +7,8 @@ async function testConnection() {
         console.log('Testing MongoDB connection...');
         console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not set');
         
-        await mongoose.connect(process.env.MONGO_URI, {
+        const mongoUri = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
+        await mongoose.connect(mongoUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });

@@ -168,6 +168,46 @@ const sampleCourses = [
                 order: 3
             }
         ]
+    },
+    {
+        title: 'Sustainable Farming Practices',
+        slug: 'sustainable-farming-practices',
+        description: 'Learn environmentally conscious farming methods that promote long-term sustainability. Discover techniques for reducing environmental impact while maintaining productivity and profitability.',
+        category: 'Sustainability',
+        coverImage: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=1600&auto=format&fit=crop',
+        price: 120,
+        currency: 'KES',
+        isFree: false,
+        lessons: [
+            {
+                title: 'Principles of Sustainable Agriculture',
+                contentHtml: '<h2>Building a Sustainable Future</h2><p>Understand the core principles of sustainable farming and their importance for future generations...</p>',
+                videoUrl: 'https://example.com/video16',
+                duration: '22 minutes',
+                order: 1
+            },
+            {
+                title: 'Conservation Tillage',
+                contentHtml: '<h2>Protecting Soil Structure</h2><p>Learn about reduced tillage methods that preserve soil health and reduce erosion...</p>',
+                videoUrl: 'https://example.com/video17',
+                duration: '19 minutes',
+                order: 2
+            },
+            {
+                title: 'Renewable Energy on the Farm',
+                contentHtml: '<h2>Powering Your Farm Sustainably</h2><p>Explore solar, wind, and other renewable energy options for agricultural operations...</p>',
+                videoUrl: 'https://example.com/video18',
+                duration: '24 minutes',
+                order: 3
+            },
+            {
+                title: 'Carbon Footprint Reduction',
+                contentHtml: '<h2>Minimizing Environmental Impact</h2><p>Implement strategies to reduce your farm\'s carbon footprint and contribute to climate solutions...</p>',
+                videoUrl: 'https://example.com/video19',
+                duration: '20 minutes',
+                order: 4
+            }
+        ]
     }
 ];
 

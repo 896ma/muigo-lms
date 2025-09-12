@@ -688,12 +688,15 @@ function CourseGrid() {
 			
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 				{courses.map(course => (
-					<div key={course._id || course.id} className="border rounded-lg overflow-hidden bg-white transition-colors hover:bg-jungle-50">
-						<img 
-							src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
-							alt={course.title} 
-							className="h-40 w-full object-cover" 
-						/>
+					<div key={course._id || course.id} className="border rounded-lg overflow-hidden bg-white transition-colors hover:bg-jungle-50 group">
+						<div className="relative overflow-hidden">
+							<img 
+								src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
+								alt={course.title} 
+								className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-105" 
+							/>
+							<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+						</div>
 						<div className="p-4 space-y-2">
 							<h3 className="font-semibold">{course.title}</h3>
 							{(course.description || course.desc) && (
@@ -780,12 +783,15 @@ const CourseDetail = ({ courseSlug }) => {
 				</div>
 			)}
 			
-			<div className="bg-white rounded-lg shadow-lg overflow-hidden">
-				<img 
-					src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
-					alt={course.title}
-					className="w-full h-64 object-cover"
-				/>
+			<div className="bg-white rounded-lg shadow-lg overflow-hidden group">
+				<div className="relative overflow-hidden">
+					<img 
+						src={course.coverImage || course.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop'} 
+						alt={course.title}
+						className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+					/>
+					<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+				</div>
 				<div className="p-6">
 					<div className="flex justify-between items-start mb-4">
 						<h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
