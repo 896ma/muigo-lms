@@ -239,7 +239,7 @@ const Register = () => {
 					minLength="6"
 				/>
 				<input 
-					className="border rounded px-3 py-2" 
+					className="border rounded px-3 py-2 text-black" 
 					placeholder="Phone Number" 
 					type="tel"
 					name="phone"
@@ -353,10 +353,10 @@ const Admin = () => {
 				<tbody className="bg-white divide-y divide-gray-200">
 					{users.map((user) => (
 						<tr key={user._id}>
-							<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || 'N/A'}</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.farmLocation || 'N/A'}</td>
+							<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">{user.name}</td>
+							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.email}</td>
+							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.phone || 'N/A'}</td>
+							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.farmLocation || 'N/A'}</td>
 							<td className="px-6 py-4 whitespace-nowrap">
 								<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
 									user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
@@ -364,7 +364,7 @@ const Admin = () => {
 									{user.role}
 								</span>
 							</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">
 								{new Date(user.createdAt).toLocaleDateString()}
 							</td>
 						</tr>
@@ -605,19 +605,19 @@ function CoursesTable() {
 		<div className="overflow-x-auto">
 			<table className="min-w-full text-sm">
 				<thead>
-					<tr className="text-left text-gray-600">
-						<th className="p-2">Title</th>
-						<th className="p-2">Price</th>
-						<th className="p-2">Status</th>
-						<th className="p-2">Actions</th>
+					<tr className="text-left text-gray-800">
+						<th className="p-2 font-semibold">Title</th>
+						<th className="p-2 font-semibold">Price</th>
+						<th className="p-2 font-semibold">Status</th>
+						<th className="p-2 font-semibold">Actions</th>
 					</tr>
 				</thead>
 				<tbody>
 					{placeholderCourses.map(c => (
 						<tr key={c.id} className="border-t">
-							<td className="p-2">{c.title}</td>
-							<td className="p-2">{c.price}</td>
-							<td className="p-2">Published</td>
+							<td className="p-2 text-black">{c.title}</td>
+							<td className="p-2 text-black">{c.price}</td>
+							<td className="p-2 text-black">Published</td>
 							<td className="p-2">
 								<button className="inline-flex items-center gap-2 rounded-md px-3 py-2 font-medium border border-jungle text-jungle hover:bg-jungle-50">Edit</button>
 							</td>
@@ -643,7 +643,7 @@ const placeholderCourses = [
 	{ 
 		id: 2, 
 		title: 'Irrigation 101', 
-		price: 50, 
+		price: 49, 
 		isFree: false, 
 		image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=1600&auto=format&fit=crop', 
 		desc: 'Design efficient watering systems to save water and time.',
@@ -652,7 +652,7 @@ const placeholderCourses = [
 	{ 
 		id: 3, 
 		title: 'Organic Pest Control', 
-		price: 50, 
+		price: 39, 
 		isFree: false, 
 		image: 'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?q=80&w=1600&auto=format&fit=crop', 
 		desc: 'Protect your farm using safe, sustainable methods.',
@@ -660,6 +660,24 @@ const placeholderCourses = [
 	},
 	{ 
 		id: 4, 
+		title: 'Advanced Crop Management', 
+		price: 29, 
+		isFree: false, 
+		image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop', 
+		desc: 'Master advanced techniques for maximizing crop yields and quality.',
+		slug: 'advanced-crop-management'
+	},
+	{ 
+		id: 5, 
+		title: 'Sustainable Farming Practices', 
+		price: 35, 
+		isFree: false, 
+		image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop', 
+		desc: 'Learn sustainable farming methods for long-term success.',
+		slug: 'sustainable-farming-practices'
+	},
+	{ 
+		id: 6, 
 		title: 'Market Readiness', 
 		price: 0, 
 		isFree: true, 
@@ -1359,7 +1377,7 @@ const CourseDetail = ({ courseSlug }) => {
 									placeholder="07XX XXX XXX"
 									value={phoneNumber}
 									onChange={(e) => setPhoneNumber(e.target.value)}
-									className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+									className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
 								/>
 								<p className="text-xs text-gray-500 mt-1">Enter your M-Pesa registered phone number</p>
 							</div>
