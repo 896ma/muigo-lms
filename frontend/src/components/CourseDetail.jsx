@@ -23,6 +23,47 @@ const CourseDetail = () => {
         setIsAuthenticated(isAuthed());
     };
 
+    const openLesson = (lesson) => {
+        if (lesson.contentHtml) {
+            const lessonWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+            lessonWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${lesson.title} - ${course.title}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                        h1 { color: #29AB87; }
+                        h2 { color: #1F876C; }
+                        .lesson-content { max-width: 800px; margin: 0 auto; }
+                        .back-button { 
+                            background: #29AB87; 
+                            color: white; 
+                            padding: 10px 20px; 
+                            text-decoration: none; 
+                            border-radius: 5px; 
+                            display: inline-block; 
+                            margin-bottom: 20px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="lesson-content">
+                        <a href="javascript:window.close()" class="back-button">← Close Lesson</a>
+                        <h1>${lesson.title}</h1>
+                        <p><strong>Duration:</strong> ${lesson.duration || 'Not specified'}</p>
+                        <hr>
+                        ${lesson.contentHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            lessonWindow.document.close();
+        } else {
+            alert('Lesson content is not available yet.');
+        }
+    };
+
     const loadCourse = async () => {
         try {
             setLoading(true);
@@ -73,14 +114,95 @@ const CourseDetail = () => {
                     const response = await apiPost(`/api/courses/${course._id}/enroll`);
                     alert(response.message || 'Successfully enrolled in free course!');
                     setIsEnrolled(true);
-                    // Redirect to portal after a short delay
-                    setTimeout(() => {
-                        navigate('/portal');
-                    }, 1500);
+                    // Open first lesson if available
+                    if (course.lessons && course.lessons.length > 0) {
+                        const firstLesson = course.lessons[0];
+                        if (firstLesson.contentHtml) {
+                            // Create a new window/tab with the lesson content
+                            const lessonWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                            lessonWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <title>${firstLesson.title} - ${course.title}</title>
+                                    <style>
+                                        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                                        h1 { color: #29AB87; }
+                                        h2 { color: #1F876C; }
+                                        .lesson-content { max-width: 800px; margin: 0 auto; }
+                                        .back-button { 
+                                            background: #29AB87; 
+                                            color: white; 
+                                            padding: 10px 20px; 
+                                            text-decoration: none; 
+                                            border-radius: 5px; 
+                                            display: inline-block; 
+                                            margin-bottom: 20px;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="lesson-content">
+                                        <a href="javascript:window.close()" class="back-button">← Close Lesson</a>
+                                        <h1>${firstLesson.title}</h1>
+                                        <p><strong>Duration:</strong> ${firstLesson.duration || 'Not specified'}</p>
+                                        <hr>
+                                        ${firstLesson.contentHtml}
+                                    </div>
+                                </body>
+                                </html>
+                            `);
+                            lessonWindow.document.close();
+                        } else {
+                            alert('First lesson content is not available yet.');
+                        }
+                    } else {
+                        alert('No lessons available for this course yet.');
+                    }
                 } catch (err) {
                     // If enrollment fails, show a message but still unlock content
                     alert('Free course content unlocked! (Note: Full enrollment requires login)');
                     setIsEnrolled(true);
+                    // Still try to open first lesson
+                    if (course.lessons && course.lessons.length > 0) {
+                        const firstLesson = course.lessons[0];
+                        if (firstLesson.contentHtml) {
+                            const lessonWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                            lessonWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <title>${firstLesson.title} - ${course.title}</title>
+                                    <style>
+                                        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                                        h1 { color: #29AB87; }
+                                        h2 { color: #1F876C; }
+                                        .lesson-content { max-width: 800px; margin: 0 auto; }
+                                        .back-button { 
+                                            background: #29AB87; 
+                                            color: white; 
+                                            padding: 10px 20px; 
+                                            text-decoration: none; 
+                                            border-radius: 5px; 
+                                            display: inline-block; 
+                                            margin-bottom: 20px;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="lesson-content">
+                                        <a href="javascript:window.close()" class="back-button">← Close Lesson</a>
+                                        <h1>${firstLesson.title}</h1>
+                                        <p><strong>Duration:</strong> ${firstLesson.duration || 'Not specified'}</p>
+                                        <hr>
+                                        ${firstLesson.contentHtml}
+                                    </div>
+                                </body>
+                                </html>
+                            `);
+                            lessonWindow.document.close();
+                        }
+                    }
                 }
             } else {
                 // Paid course - initialize Paystack payment
@@ -149,19 +271,27 @@ const CourseDetail = () => {
                     <p className="text-gray-600 mb-6">{course.description}</p>
                     
                     <div className="mb-6">
-                        <h3 className="text-lg font-semibold mb-3">Course Content</h3>
+                        <h3 className="text-lg font-semibold mb-3 text-jungle-600">Course Content</h3>
                         {course.lessons && course.lessons.length > 0 ? (
                             <div className="space-y-2">
                                 {course.lessons.map((lesson, index) => (
-                                    <div key={lesson._id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                    <div 
+                                        key={lesson._id || index} 
+                                        className={`flex items-center justify-between p-3 rounded cursor-pointer transition-colors ${
+                                            isEnrolled 
+                                                ? 'bg-gray-50 hover:bg-jungle-50 border border-gray-200 hover:border-jungle-300' 
+                                                : 'bg-gray-100'
+                                        }`}
+                                        onClick={() => isEnrolled && openLesson(lesson)}
+                                    >
                                         <div>
-                                            <div className="font-medium">{lesson.title}</div>
+                                            <div className="font-medium text-black">{lesson.title}</div>
                                             {lesson.duration && (
-                                                <div className="text-sm text-gray-500">{lesson.duration}</div>
+                                                <div className="text-sm text-gray-700">{lesson.duration}</div>
                                             )}
                                         </div>
                                         {isEnrolled ? (
-                                            <span className="text-green-600 text-sm">✓ Available</span>
+                                            <span className="text-green-600 text-sm">✓ Click to open</span>
                                         ) : (
                                             <span className="text-gray-400 text-sm">🔒 Locked</span>
                                         )}

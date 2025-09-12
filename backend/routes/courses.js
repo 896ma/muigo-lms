@@ -79,7 +79,7 @@ router.post('/:id/enroll', async (req, res) => {
 
 		// For free courses, allow enrollment without authentication
 		if (course.isFree || course.price === 0) {
-			// Create a temporary enrollment record (you might want to store this differently)
+			// Create a temporary enrollment record for free courses
 			const enrollment = {
 				_id: `temp_${Date.now()}`,
 				course: courseId,
@@ -114,11 +114,31 @@ router.post('/:id/enroll', async (req, res) => {
 		const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
 		const userId = payload.id;
 
+		// Check if already enrolled
 		const existing = await Enrollment.findOne({ user: userId, course: courseId });
-		if (existing) return res.json(existing);
+		if (existing) {
+			return res.status(200).json({
+				message: 'Already enrolled in this course',
+				enrollment: existing
+			});
+		}
 		
-		const enrollment = await Enrollment.create({ user: userId, course: courseId, status: 'active' });
-		res.status(201).json(enrollment);
+		// Create enrollment record
+		const enrollment = await Enrollment.create({ 
+			user: userId, 
+			course: courseId, 
+			status: 'active',
+			enrolledAt: new Date(),
+			progress: 0
+		});
+
+		// Populate course data for response
+		await enrollment.populate('course', 'title slug coverImage price currency description');
+		
+		res.status(201).json({
+			message: 'Successfully enrolled in course!',
+			enrollment: enrollment
+		});
 	} catch (error) {
 		console.error('Error enrolling in course:', error);
 		res.status(500).json({ message: 'Error enrolling in course', error: error.message });

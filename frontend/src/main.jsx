@@ -433,6 +433,9 @@ const Admin = () => {
 
 import ProgressBar from './components/ProgressBar.jsx'
 
+// Global function to refresh enrollments
+let refreshEnrollments = null;
+
 const Portal = () => {
 	const [user, setUser] = useState(null);
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -461,20 +464,34 @@ const Portal = () => {
 	const fetchEnrollments = async () => {
 		try {
 			const token = localStorage.getItem('token');
-			const response = await fetch('http://localhost:5000/api/enrollments', {
+			const response = await fetch('http://localhost:5000/api/enrollments/me', {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				}
 			});
-			const data = await response.json();
-			setEnrollments(data);
+			
+			if (response.ok) {
+				const data = await response.json();
+				console.log('Enrollments fetched:', data);
+				console.log('Number of enrollments:', data.length);
+				setEnrollments(data);
+			} else {
+				console.error('Failed to fetch enrollments:', response.status);
+				const errorText = await response.text();
+				console.error('Error response:', errorText);
+				setEnrollments([]);
+			}
 		} catch (error) {
 			console.error('Error fetching enrollments:', error);
+			setEnrollments([]);
 		} finally {
 			setLoading(false);
 		}
 	};
+
+	// Set global reference
+	refreshEnrollments = fetchEnrollments;
 
 	if (!isAuthenticated) {
 		return (
@@ -505,7 +522,15 @@ const Portal = () => {
 			
 			<div className="grid gap-6">
 				<div className="rounded border p-4 bg-white">
-					<h3 className="font-semibold mb-4">My Enrolled Courses</h3>
+					<div className="flex justify-between items-center mb-4">
+						<h3 className="font-semibold">My Enrolled Courses</h3>
+						<button 
+							onClick={fetchEnrollments}
+							className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors"
+						>
+							Refresh
+						</button>
+					</div>
 					{loading ? (
 						<div className="text-center py-4">
 							<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-jungle-500 mx-auto mb-2"></div>
@@ -514,16 +539,27 @@ const Portal = () => {
 					) : enrollments.length > 0 ? (
 						<div className="space-y-3">
 							{enrollments.map((enrollment) => (
-								<div key={enrollment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-									<div>
-										<span className="font-medium">{enrollment.course?.title || 'Course Title'}</span>
-										<div className="text-sm text-gray-500">
-											Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
+								<div key={enrollment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-jungle-50 transition-colors">
+									<div className="flex-1">
+										<span className="font-medium text-lg">{enrollment.course?.title || 'Course Title'}</span>
+										<div className="text-sm text-gray-500 mt-1">
+											Enrolled: {new Date(enrollment.enrolledAt || enrollment.startedAt).toLocaleDateString()}
 										</div>
+										{enrollment.course?.description && (
+											<div className="text-sm text-gray-600 mt-1">
+												{enrollment.course.description.substring(0, 100)}...
+											</div>
+										)}
 									</div>
 									<div className="flex items-center gap-3">
 										<ProgressBar value={enrollment.progress || 0} />
-										<span className="text-sm text-gray-600">{enrollment.progress || 0}%</span>
+										<span className="text-sm text-gray-600 font-medium">{enrollment.progress || 0}%</span>
+										<a 
+											href={`/courses/${enrollment.course?.slug}`}
+											className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors"
+										>
+											Continue
+										</a>
 									</div>
 								</div>
 							))}
@@ -724,10 +760,149 @@ const CourseDetail = ({ courseSlug }) => {
 	const [course, setCourse] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [enrolling, setEnrolling] = useState(false);
+	const [email, setEmail] = useState('');
+	const [isEnrolled, setIsEnrolled] = useState(false);
+	const [isAuthenticated, setIsAuthenticated] = useState(false);
 
 	useEffect(() => {
 		loadCourse();
-	}, [courseSlug]);
+		checkAuthStatus();
+	}, [courseSlug, isAuthenticated]);
+
+	const checkAuthStatus = () => {
+		const token = localStorage.getItem('token');
+		const userData = localStorage.getItem('user');
+		setIsAuthenticated(!!(token && userData));
+	};
+
+	const openLesson = (lesson) => {
+		if (lesson.contentHtml) {
+			const lessonWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+			lessonWindow.document.write(`
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<title>${lesson.title} - ${course.title}</title>
+					<style>
+						body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+						h1 { color: #29AB87; }
+						h2 { color: #1F876C; }
+						.lesson-content { max-width: 800px; margin: 0 auto; }
+						.back-button { 
+							background: #29AB87; 
+							color: white; 
+							padding: 10px 20px; 
+							text-decoration: none; 
+							border-radius: 5px; 
+							display: inline-block; 
+							margin-bottom: 20px;
+						}
+					</style>
+				</head>
+				<body>
+					<div class="lesson-content">
+						<a href="javascript:window.close()" class="back-button">← Close Lesson</a>
+						<h1>${lesson.title}</h1>
+						<p><strong>Duration:</strong> ${lesson.duration || 'Not specified'}</p>
+						<hr>
+						${lesson.contentHtml}
+					</div>
+				</body>
+				</html>
+			`);
+			lessonWindow.document.close();
+		} else {
+			alert('Lesson content is not available yet.');
+		}
+	};
+
+	const handleEnroll = async () => {
+		if (!course.isFree && !email) {
+			alert('Please enter your email address for payment');
+			return;
+		}
+
+		try {
+			setEnrolling(true);
+			
+			if (course.isFree) {
+				// Free course - enroll directly without authentication
+				try {
+					const response = await fetch(`http://localhost:5000/api/courses/${course._id}/enroll`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					});
+					
+					if (response.ok) {
+						const data = await response.json();
+						console.log('Enrollment response:', data);
+						alert(data.message || 'Successfully enrolled in free course!');
+						setIsEnrolled(true);
+						
+						// Open first lesson if available
+						if (course.lessons && course.lessons.length > 0) {
+							const firstLesson = course.lessons[0];
+							openLesson(firstLesson);
+						} else {
+							alert('No lessons available for this course yet.');
+						}
+					} else {
+						const errorData = await response.json();
+						console.error('Enrollment error response:', errorData);
+						throw new Error(errorData.message || 'Enrollment failed');
+					}
+				} catch (err) {
+					console.error('Enrollment error:', err);
+					alert('Enrollment failed. Please try again or contact support.');
+				}
+			} else {
+				// Paid course - require authentication
+				if (!isAuthenticated) {
+					alert('Please log in to enroll in paid courses. You will be redirected to the login page.');
+					window.location.href = '/login';
+					return;
+				}
+
+				// Initialize Paystack payment
+				try {
+					console.log('Initializing payment for course:', course._id, 'with email:', email);
+					const token = localStorage.getItem('token');
+					const response = await fetch('http://localhost:5000/api/payments/initialize', {
+						method: 'POST',
+						headers: {
+							'Authorization': `Bearer ${token}`,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							courseId: course._id,
+							email: email
+						})
+					});
+					
+					if (response.ok) {
+						const paymentData = await response.json();
+						console.log('Payment data received:', paymentData);
+						console.log('Redirecting to:', paymentData.authorization_url);
+						
+						// Redirect to Paystack payment page
+						window.location.href = paymentData.authorization_url;
+					} else {
+						throw new Error('Payment initialization failed');
+					}
+				} catch (err) {
+					console.error('Payment initialization error:', err);
+					alert('Payment initialization failed: ' + err.message + '\n\nNote: This requires proper Paystack configuration.');
+				}
+			}
+		} catch (err) {
+			alert('Enrollment failed: ' + err.message);
+		} finally {
+			setEnrolling(false);
+		}
+	};
 
 	const loadCourse = async () => {
 		try {
@@ -738,12 +913,48 @@ const CourseDetail = ({ courseSlug }) => {
 			const data = await apiGet(`/api/courses/${courseSlug}`);
 			console.log('Course fetched from API:', data);
 			setCourse(data);
+			
+			// Check enrollment status
+			if (data.isFree) {
+				// Free courses are always accessible
+				setIsEnrolled(true);
+			} else if (isAuthenticated) {
+				// For paid courses, check if user is enrolled
+				try {
+					const token = localStorage.getItem('token');
+					const response = await fetch(`http://localhost:5000/api/enrollments/me`, {
+						headers: {
+							'Authorization': `Bearer ${token}`,
+							'Content-Type': 'application/json'
+						}
+					});
+					
+					if (response.ok) {
+						const enrollments = await response.json();
+						const isEnrolledInCourse = enrollments.some(enrollment => 
+							enrollment.course && enrollment.course._id === data._id
+						);
+						setIsEnrolled(isEnrolledInCourse);
+					} else {
+						setIsEnrolled(false);
+					}
+				} catch (err) {
+					console.error('Error checking enrollment:', err);
+					setIsEnrolled(false);
+				}
+			} else {
+				// Not authenticated and not free course
+				setIsEnrolled(false);
+			}
 		} catch (err) {
 			console.error('Error fetching course from API:', err);
 			setError(err.message);
 			// Fallback to placeholder data
 			const fallbackCourse = placeholderCourses.find(c => c.slug === courseSlug);
 			setCourse(fallbackCourse);
+			if (fallbackCourse && fallbackCourse.isFree) {
+				setIsEnrolled(true);
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -805,18 +1016,30 @@ const CourseDetail = ({ courseSlug }) => {
 					<p className="text-gray-600 mb-6">{course.description || course.desc}</p>
 					
 					<div className="mb-6">
-						<h3 className="text-lg font-semibold mb-3">Course Content</h3>
+						<h3 className="text-lg font-semibold mb-3 text-jungle-600">Course Content</h3>
 						{course.lessons && course.lessons.length > 0 ? (
 							<div className="space-y-2">
 								{course.lessons.map((lesson, index) => (
-									<div key={lesson._id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+									<div 
+										key={lesson._id || index} 
+										className={`flex items-center justify-between p-3 rounded cursor-pointer transition-colors ${
+											(course.isFree || isEnrolled)
+												? 'bg-gray-50 hover:bg-jungle-50 border border-gray-200 hover:border-jungle-300'
+												: 'bg-gray-100'
+										}`}
+										onClick={() => (course.isFree || isEnrolled) && openLesson(lesson)}
+									>
 										<div>
-											<div className="font-medium">{lesson.title}</div>
+											<div className="font-medium text-black">{lesson.title}</div>
 											{lesson.duration && (
-												<div className="text-sm text-gray-500">{lesson.duration}</div>
+												<div className="text-sm text-gray-700">{lesson.duration}</div>
 											)}
 										</div>
-										<span className="text-green-600 text-sm">✓ Available</span>
+										{(course.isFree || isEnrolled) ? (
+											<span className="text-green-600 text-sm">✓ Click to open</span>
+										) : (
+											<span className="text-gray-400 text-sm">🔒 Locked</span>
+										)}
 									</div>
 								))}
 							</div>
@@ -824,22 +1047,22 @@ const CourseDetail = ({ courseSlug }) => {
 							<div className="space-y-2">
 								<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
 									<div>
-										<div className="font-medium">Introduction to {course.title}</div>
-										<div className="text-sm text-gray-500">15 minutes</div>
+										<div className="font-medium text-black">Introduction to {course.title}</div>
+										<div className="text-sm text-gray-700">15 minutes</div>
 									</div>
 									<span className="text-green-600 text-sm">✓ Available</span>
 								</div>
 								<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
 									<div>
-										<div className="font-medium">Advanced Techniques</div>
-										<div className="text-sm text-gray-500">20 minutes</div>
+										<div className="font-medium text-black">Advanced Techniques</div>
+										<div className="text-sm text-gray-700">20 minutes</div>
 									</div>
 									<span className="text-green-600 text-sm">✓ Available</span>
 								</div>
 								<div className="flex items-center justify-between p-3 bg-gray-50 rounded">
 									<div>
-										<div className="font-medium">Practical Application</div>
-										<div className="text-sm text-gray-500">25 minutes</div>
+										<div className="font-medium text-black">Practical Application</div>
+										<div className="text-sm text-gray-700">25 minutes</div>
 									</div>
 									<span className="text-green-600 text-sm">✓ Available</span>
 								</div>
@@ -847,10 +1070,110 @@ const CourseDetail = ({ courseSlug }) => {
 						)}
 					</div>
 
-					<div className="flex gap-4">
-						<button className="px-6 py-2 bg-jungle-600 text-white rounded-md hover:bg-jungle-700">
-							{course.isFree ? 'Enroll Free' : 'Pay & Enroll'}
-						</button>
+					{!isEnrolled && !course.isFree && !isAuthenticated && (
+						<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+							<h4 className="font-semibold text-blue-800 mb-2">Login Required</h4>
+							<p className="text-blue-700 text-sm">
+								Please log in to enroll in paid courses and track your progress.
+							</p>
+							<div className="mt-3">
+								<a href="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
+									Login
+								</a>
+								<a href="/register" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-jungle-500 text-jungle-500 hover:bg-jungle-50 ml-2">
+									Register
+								</a>
+							</div>
+						</div>
+					)}
+
+					{!isEnrolled && course.isFree && (
+						<div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+							<h4 className="font-semibold text-green-800 mb-2">Free Course - Start Learning!</h4>
+							<p className="text-green-700 text-sm">
+								This is a free course. Click enroll to get started and access all lessons!
+							</p>
+						</div>
+					)}
+
+					{!isEnrolled && !course.isFree && isAuthenticated && (
+						<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+							<h4 className="font-semibold text-yellow-800 mb-2">Course Access Required</h4>
+							<p className="text-yellow-700 text-sm">
+								This course requires payment. Enter your email below to proceed with payment.
+							</p>
+						</div>
+					)}
+
+					<div className="bg-gray-50 rounded-lg p-6 border-2 border-dashed border-gray-200">
+						<div className="text-center mb-4">
+							<h3 className="text-lg font-semibold text-gray-800 mb-2">
+								{course.isFree ? 'Ready to Start Learning?' : 'Ready to Enroll?'}
+							</h3>
+							<p className="text-sm text-gray-600">
+								{course.isFree 
+									? 'This course is completely free. Click below to get started!'
+									: `Get full access to this course for just Ksh ${course.price}`
+								}
+							</p>
+						</div>
+
+						<div className="flex flex-col sm:flex-row gap-4 items-center">
+							{!isEnrolled && !course.isFree && (
+								<div className="flex-1 w-full">
+									<label className="block text-sm font-medium text-gray-700 mb-2">
+										Email Address (for payment receipt)
+									</label>
+									<input
+										type="email"
+										placeholder="Enter your email address"
+										value={email}
+										onChange={(e) => setEmail(e.target.value)}
+										className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-jungle-500 focus:border-jungle-500 text-lg"
+										required
+									/>
+								</div>
+							)}
+							
+							<button
+								onClick={handleEnroll}
+								disabled={enrolling || (!course.isFree && !email)}
+								className={`px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 transform hover:scale-105 ${
+									course.isFree 
+										? 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl' 
+										: 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl border-4 border-jungle-700'
+								} disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none`}
+							>
+								{enrolling ? (
+									<span className="flex items-center gap-2">
+										<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+										Processing...
+									</span>
+								) : course.isFree ? (
+									'🎓 Enroll Free'
+								) : (
+									`💳 Pay Ksh ${course.price} & Enroll`
+								)}
+							</button>
+							
+							{isEnrolled && (
+								<button
+									onClick={() => window.location.href = '/portal'}
+									className="px-8 py-4 text-lg font-bold bg-jungle-500 text-white rounded-lg hover:bg-jungle-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+								>
+									✅ Go to Portal
+								</button>
+							)}
+							
+							{!isEnrolled && course.isFree && (
+								<button
+									onClick={() => window.location.href = '/portal'}
+									className="px-8 py-4 text-lg font-bold bg-gray-500 text-white rounded-lg hover:bg-gray-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+								>
+									✅ Go to Portal
+								</button>
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
