@@ -994,6 +994,9 @@ const CourseDetail = ({ courseSlug }) => {
 	};
 
 	const startPaymentVerification = (reference) => {
+		let verificationInterval = null;
+		let timeoutId = null;
+		
 		const checkPaymentStatus = async () => {
 			try {
 				const token = localStorage.getItem('token');
@@ -1009,39 +1012,91 @@ const CourseDetail = ({ courseSlug }) => {
 				if (response.ok) {
 					const data = await response.json();
 					console.log('Payment verification response:', data);
+					console.log('Response message:', data.message);
+					console.log('Response status:', data.status);
+					console.log('Checking for success keywords...');
 					
-					if (data.message && data.message.includes('successful')) {
+					// Check for successful payment - be more flexible with success detection
+					const isSuccess = data.message && (
+						data.message.includes('successful') || 
+						data.message.includes('enrolled') ||
+						data.message.includes('M-Pesa payment successful') ||
+						data.status === 'success' ||
+						(data.payment && data.payment.status === 'success')
+					);
+					
+					console.log('Is success detected:', isSuccess);
+					
+					if (isSuccess) {
+						// Clear intervals and timeouts
+						if (verificationInterval) clearInterval(verificationInterval);
+						if (timeoutId) clearTimeout(timeoutId);
+						
+						// Set success status
 						setPaymentStatus('success');
 						setIsEnrolled(true);
-						alert('Payment successful! You are now enrolled in the course.');
+						
+						// Show success message and redirect
+						alert('Payment successful! You are now enrolled in the course. Redirecting to course...');
 						
 						// Refresh enrollments if portal is open
 						if (refreshEnrollments) {
 							refreshEnrollments();
 						}
 						
-						// Clear payment status
+						// Open first lesson automatically
+						if (course && course.lessons && course.lessons.length > 0) {
+							const firstLesson = course.lessons[0];
+							openLesson(firstLesson);
+						}
+						
+						// Clear payment reference but keep success status for UI
 						setPaymentReference(null);
-						setPaymentStatus(null);
+						
+						// Redirect back to course tab after a short delay
+						setTimeout(() => {
+							// Close any payment windows
+							window.close();
+							// Focus back to the main window
+							window.focus();
+						}, 2000);
+						
+						return; // Exit the function
 					} else if (data.status === 'pending') {
 						// Payment is still pending, continue waiting
 						console.log('Payment still pending...');
+						setPaymentStatus('pending');
+					} else {
+						// Payment failed or other status
+						console.log('Payment verification failed. Full response:', data);
+						console.log('Failed message:', data.message);
+						console.log('Failed status:', data.status);
+						setPaymentStatus('failed');
 					}
+				} else {
+					console.error('Payment verification request failed:', response.status);
+					setPaymentStatus('error');
 				}
 			} catch (error) {
 				console.error('Payment verification error:', error);
+				setPaymentStatus('error');
 			}
 		};
 
-		// Check payment status every 5 seconds for 2 minutes
-		const interval = setInterval(checkPaymentStatus, 5000);
-		setTimeout(() => {
-			clearInterval(interval);
+		// Check payment status every 3 seconds for 3 minutes
+		verificationInterval = setInterval(checkPaymentStatus, 3000);
+		
+		// Set timeout
+		timeoutId = setTimeout(() => {
+			if (verificationInterval) clearInterval(verificationInterval);
 			if (paymentStatus === 'pending') {
 				setPaymentStatus('timeout');
 				alert('Payment verification timed out. Please try again or contact support.');
 			}
-		}, 120000); // 2 minutes timeout
+		}, 180000); // 3 minutes timeout
+		
+		// Initial check
+		checkPaymentStatus();
 	};
 
 	const loadCourse = async () => {
@@ -1265,9 +1320,71 @@ const CourseDetail = ({ courseSlug }) => {
 									className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
 								>
 									Check Status
-						</button>
-					</div>
-				</div>
+								</button>
+							</div>
+						</div>
+					)}
+
+					{paymentStatus === 'success' && (
+						<div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+							<div className="flex items-center">
+								<div className="text-green-600 text-2xl mr-3">✅</div>
+								<div>
+									<h4 className="font-semibold text-green-800 mb-1">Payment Successful!</h4>
+									<p className="text-green-700 text-sm">
+										You are now enrolled in this course. The first lesson should open automatically.
+									</p>
+								</div>
+							</div>
+						</div>
+					)}
+
+					{paymentStatus === 'failed' && (
+						<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+							<div className="flex items-center">
+								<div className="text-red-600 text-2xl mr-3">❌</div>
+								<div>
+									<h4 className="font-semibold text-red-800 mb-1">Payment Failed</h4>
+									<p className="text-red-700 text-sm">
+										Your payment could not be processed. Please try again or contact support.
+									</p>
+									<button
+										onClick={() => {
+											setPaymentStatus(null);
+											setPaymentReference(null);
+											setShowPaymentOptions(true);
+										}}
+										className="mt-2 px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+									>
+										Try Again
+									</button>
+								</div>
+							</div>
+						</div>
+					)}
+
+					{paymentStatus === 'timeout' && (
+						<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+							<div className="flex items-center">
+								<div className="text-yellow-600 text-2xl mr-3">⏰</div>
+								<div>
+									<h4 className="font-semibold text-yellow-800 mb-1">Payment Timeout</h4>
+									<p className="text-yellow-700 text-sm">
+										Payment verification timed out. Please check your payment status or try again.
+									</p>
+									<button
+										onClick={() => {
+											setPaymentStatus(null);
+											setPaymentReference(null);
+											setShowPaymentOptions(true);
+										}}
+										className="mt-2 px-4 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors"
+									>
+										Try Again
+									</button>
+								</div>
+							</div>
+						</div>
 					)}
 
 					<div className="bg-gray-50 rounded-lg p-6 border-2 border-dashed border-gray-200">

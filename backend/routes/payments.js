@@ -221,8 +221,21 @@ router.post('/verify', async (req, res) => {
 		);
 		
 		console.log('Payment verification response:', response.data);
+		console.log('Paystack response status:', response.data.status);
+		console.log('Paystack data status:', response.data.data?.status);
+		console.log('Paystack message:', response.data.message);
 		
-		if (response.data.status && response.data.data.status === 'success') {
+		// Check for successful payment with more flexible conditions
+		const isPaymentSuccessful = response.data.status && (
+			response.data.data?.status === 'success' ||
+			response.data.data?.status === 'completed' ||
+			response.data.message?.includes('successful') ||
+			response.data.message?.includes('completed')
+		);
+		
+		console.log('Is payment successful:', isPaymentSuccessful);
+		
+		if (isPaymentSuccessful) {
 			const { courseId, userId } = response.data.data.metadata;
 			
 			// For testing purposes, allow verification without strict user matching
@@ -278,17 +291,25 @@ router.post('/verify', async (req, res) => {
 					price: course.price
 				}
 			});
-		} else if (response.data.status && response.data.data.status === 'pending') {
+		} else if (response.data.status && (
+			response.data.data?.status === 'pending' ||
+			response.data.data?.status === 'processing' ||
+			response.data.message?.includes('pending')
+		)) {
 			// Payment is still pending
+			console.log('Payment is pending');
 			res.json({ 
 				message: 'Payment is still pending. Please complete the payment on your phone.', 
 				status: 'pending',
 				payment: response.data.data
 			});
 		} else {
+			// Payment failed or other status
+			console.log('Payment verification failed. Full Paystack response:', response.data);
 			res.status(400).json({ 
 				message: 'Payment verification failed', 
-				details: response.data.message || 'Payment was not successful'
+				details: response.data.message || 'Payment was not successful',
+				paystackResponse: response.data
 			});
 		}
 
