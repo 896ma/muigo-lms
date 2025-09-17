@@ -803,10 +803,8 @@ const CourseDetail = ({ courseSlug }) => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [enrolling, setEnrolling] = useState(false);
-	const [phoneNumber, setPhoneNumber] = useState('');
 	const [isEnrolled, setIsEnrolled] = useState(false);
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
-	const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 	const [paymentStatus, setPaymentStatus] = useState(null);
 	const [paymentReference, setPaymentReference] = useState(null);
 
@@ -818,7 +816,13 @@ const CourseDetail = ({ courseSlug }) => {
 	const checkAuthStatus = () => {
 		const token = localStorage.getItem('token');
 		const userData = localStorage.getItem('user');
-		setIsAuthenticated(!!(token && userData));
+		const isAuth = !!(token && userData);
+		console.log('🔍 Auth status check:', {
+			token: token ? 'Present' : 'Missing',
+			userData: userData ? 'Present' : 'Missing',
+			isAuthenticated: isAuth
+		});
+		setIsAuthenticated(isAuth);
 	};
 
 	const openLesson = (lesson) => {
@@ -913,14 +917,15 @@ const CourseDetail = ({ courseSlug }) => {
 					alert('Enrollment failed. Please try again or contact support.');
 				}
 			} else {
-				// Paid course - show payment options
+				// Paid course - redirect directly to Paystack M-Pesa payment
 				if (!isAuthenticated) {
 					alert('Please log in to enroll in paid courses. You will be redirected to the login page.');
 					window.location.href = '/login';
 					return;
 				}
 
-				setShowPaymentOptions(true);
+				// Redirect directly to Paystack M-Pesa payment
+				await handlePaystackMpesaPayment();
 			}
 		} catch (err) {
 			alert('Enrollment failed: ' + err.message);
@@ -929,69 +934,79 @@ const CourseDetail = ({ courseSlug }) => {
 		}
 	};
 
-	const handleMpesaPayment = async () => {
-		if (!phoneNumber) {
-			alert('Please enter your phone number for M-Pesa payment');
+	const handlePaystackMpesaPayment = async () => {
+		// Check if user is logged in
+		const token = localStorage.getItem('token');
+		const userData = localStorage.getItem('user');
+		
+		console.log('🔍 Payment auth check:', {
+			token: token ? 'Present' : 'Missing',
+			userData: userData ? 'Present' : 'Missing',
+			isAuthenticated: isAuthenticated
+		});
+		
+		if (!token || !userData) {
+			alert('Please log in first to make a payment');
+			window.location.href = '/login';
 			return;
 		}
 
 		try {
 			setEnrolling(true);
-			console.log('Initializing M-Pesa payment for course:', course._id, 'with phone:', phoneNumber);
-			const token = localStorage.getItem('token');
-			const response = await fetch(`${getApiBaseUrl()}/api/payments/initialize`, {
+			console.log('🚀 Initializing Paystack M-Pesa payment for course:', course._id);
+			console.log('🚀 Using token:', token ? 'Present' : 'Missing');
+			console.log('🚀 Token preview:', token ? token.substring(0, 20) + '...' : 'None');
+			console.log('🚀 API Base URL:', getApiBaseUrl());
+			
+			const requestBody = {
+				courseId: course._id,
+				phoneNumber: '254712345678' // Default phone number, user will enter on Paystack
+			};
+			
+			console.log('🚀 Request body:', requestBody);
+			console.log('🚀 Request headers:', {
+				'Authorization': `Bearer ${token}`,
+				'Content-Type': 'application/json'
+			});
+			
+			// Use the M-Pesa specific endpoint that redirects to Paystack with mobile money channels
+			const response = await fetch(`${getApiBaseUrl()}/api/payments/initiate-mpesa`, {
 				method: 'POST',
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					courseId: course._id,
-					phoneNumber: phoneNumber
-				})
+				body: JSON.stringify(requestBody)
 			});
 			
 			if (response.ok) {
 				const paymentData = await response.json();
-				console.log('M-Pesa payment data received:', paymentData);
+				console.log('Paystack M-Pesa payment data received:', paymentData);
 				
 				// Store payment reference for verification
 				setPaymentReference(paymentData.reference);
 				setPaymentStatus('pending');
-				setShowPaymentOptions(false);
 				
-				// Check if we have a redirect URL for M-Pesa authorization
-				if (paymentData.redirect_url || paymentData.authorization_url) {
-					const authUrl = paymentData.redirect_url || paymentData.authorization_url;
-					console.log('Redirecting to M-Pesa authorization URL:', authUrl);
-					
-					// Open M-Pesa authorization page in a new window
-					window.open(authUrl, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes');
-					
-					// Show message to user
-					alert('M-Pesa payment page opened. Please complete the payment on the new page. You will be redirected back here once payment is complete.');
-					
-					// Start polling for payment status
-					startPaymentVerification(paymentData.reference);
+				// Redirect to Paystack payment page
+				if (paymentData.authorization_url) {
+					console.log('Redirecting to Paystack M-Pesa payment URL:', paymentData.authorization_url);
+					window.location.href = paymentData.authorization_url;
 				} else {
-					// Fallback message
-					alert(paymentData.message || 'M-Pesa payment initialized. Please check your phone to complete payment.');
-					
-					// Start polling for payment status
-					startPaymentVerification(paymentData.reference);
+					throw new Error('No authorization URL received from Paystack');
 				}
 			} else {
 				const errorData = await response.json();
-				console.error('M-Pesa payment error response:', errorData);
-				throw new Error(errorData.message || 'M-Pesa payment initialization failed');
+				console.error('Paystack M-Pesa payment error response:', errorData);
+				throw new Error(errorData.message || 'Paystack M-Pesa payment initialization failed');
 			}
 		} catch (err) {
-			console.error('M-Pesa payment initialization error:', err);
-			alert('M-Pesa payment initialization failed: ' + err.message);
+			console.error('Paystack M-Pesa payment initialization error:', err);
+			alert('Payment initialization failed: ' + err.message);
 		} finally {
 			setEnrolling(false);
 		}
 	};
+
 
 	const startPaymentVerification = (reference) => {
 		let verificationInterval = null;
@@ -1000,13 +1015,12 @@ const CourseDetail = ({ courseSlug }) => {
 		const checkPaymentStatus = async () => {
 			try {
 				const token = localStorage.getItem('token');
-				const response = await fetch(`${getApiBaseUrl()}/api/payments/verify`, {
-					method: 'POST',
+				const response = await fetch(`${getApiBaseUrl()}/api/payments/verify/${reference}`, {
+					method: 'GET',
 					headers: {
 						'Authorization': `Bearer ${token}`,
 						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ reference })
+					}
 				});
 
 				if (response.ok) {
@@ -1419,7 +1433,7 @@ const CourseDetail = ({ courseSlug }) => {
 								) : course.isFree ? (
 									'🎓 Enroll Free'
 								) : (
-									`💳 Pay Ksh ${course.price} & Enroll`
+									`📱 Pay Ksh ${course.price} with M-Pesa`
 								)}
 							</button>
 							
@@ -1445,90 +1459,6 @@ const CourseDetail = ({ courseSlug }) => {
 				</div>
 			</div>
 
-			{/* Payment Options Modal */}
-			{showPaymentOptions && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-					<div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-						<div className="flex justify-between items-center mb-4">
-							<h3 className="text-lg font-semibold">Choose Payment Method</h3>
-							<button
-								onClick={() => setShowPaymentOptions(false)}
-								className="text-gray-500 hover:text-gray-700"
-							>
-								✕
-							</button>
-						</div>
-						
-						<div className="mb-4">
-							<p className="text-gray-600 mb-2">Course: <strong>{course.title}</strong></p>
-							<p className="text-gray-600 mb-4">Amount: <strong>Ksh {course.price}</strong></p>
-						</div>
-
-						{/* M-Pesa Payment Option */}
-						<div className="border border-gray-200 rounded-lg p-4 mb-4">
-							<div className="flex items-center mb-3">
-								<div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-3">
-									<img 
-										src="https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=40&h=40&fit=crop&crop=center" 
-										alt="M-Pesa" 
-										className="w-8 h-8 rounded"
-										onError={(e) => {
-											e.target.style.display = 'none';
-											e.target.nextSibling.style.display = 'block';
-										}}
-									/>
-									<span className="text-white font-bold text-lg" style={{display: 'none'}}>M</span>
-								</div>
-								<div>
-									<h4 className="font-semibold text-gray-800">M-Pesa Mobile Money</h4>
-									<p className="text-sm text-gray-600">Pay using your M-Pesa account</p>
-								</div>
-							</div>
-							
-							<div className="mb-3">
-								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Phone Number
-								</label>
-								<input
-									type="tel"
-									placeholder="07XX XXX XXX"
-									value={phoneNumber}
-									onChange={(e) => setPhoneNumber(e.target.value)}
-									className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
-								/>
-								<p className="text-xs text-gray-500 mt-1">Enter your M-Pesa registered phone number</p>
-							</div>
-							
-							<button
-								onClick={handleMpesaPayment}
-								disabled={enrolling || !phoneNumber}
-								className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								{enrolling ? 'Processing...' : 'Pay with M-Pesa'}
-							</button>
-						</div>
-
-						{/* Additional Mobile Money Options */}
-						<div className="text-center text-sm text-gray-500 mb-4">
-							<p>Other mobile money options available through Paystack:</p>
-							<div className="flex justify-center space-x-4 mt-2">
-								<span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Airtel Money</span>
-								<span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">T-Kash</span>
-								<span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">Equitel</span>
-							</div>
-						</div>
-
-						<div className="text-center">
-							<button
-								onClick={() => setShowPaymentOptions(false)}
-								className="text-gray-500 hover:text-gray-700 text-sm"
-							>
-								Cancel
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 };

@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Course = require('./models/course');
-const User = require('./models/User');
+const User = require('./models/user');
 
 const sampleCourses = [
     {

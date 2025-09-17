@@ -1,5 +1,5 @@
 const express = require('express');
-const User = require('../models/User');
+const User = require('../models/user');
 const Course = require('../models/course');
 const Enrollment = require('../models/Enrollment');
 const requireAuth = require('../middleware/auth');

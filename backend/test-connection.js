@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 const mongoose = require('mongoose');
 const Course = require('./models/course');
 
@@ -8,10 +8,7 @@ async function testConnection() {
         console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not set');
         
         const mongoUri = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
-        await mongoose.connect(mongoUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+        await mongoose.connect(mongoUri);
         
         console.log('✅ Connected to MongoDB successfully');
         

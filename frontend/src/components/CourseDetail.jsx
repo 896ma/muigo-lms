@@ -207,10 +207,9 @@ const CourseDetail = () => {
             } else {
                 // Paid course - initialize Paystack payment
                 try {
-                    console.log('Initializing payment for course:', course._id, 'with email:', email);
-                    const paymentData = await apiPost('/api/payments/initialize', {
-                        courseId: course._id,
-                        email: email
+                    console.log('Initializing payment for course:', course._id);
+                    const paymentData = await apiPost('/api/payments/initiate', {
+                        courseId: course._id
                     });
                     
                     console.log('Payment data received:', paymentData);

@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 // Import User model
-const User = require('./models/User');
+const User = require('./models/user');
 
 async function createAdmin() {
     try {

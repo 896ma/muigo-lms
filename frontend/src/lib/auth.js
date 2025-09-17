@@ -1,4 +1,4 @@
-const KEY = 'auth_token';
+const KEY = 'token';
 
 export function getToken() {
 	return localStorage.getItem(KEY) || '';

@@ -1,17 +1,10 @@
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 const express = require('express');
-
-// Set default environment variables if not provided
-process.env.MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_this_in_production';
-// Paystack configuration - will use keys from .env file
-// Make sure to set PAYSTACK_SECRET_KEY and PAYSTACK_PUBLIC_KEY in your .env file
-console.log('Paystack Secret Key loaded:', process.env.PAYSTACK_SECRET_KEY ? 'Yes' : 'No');
-console.log('Paystack Public Key loaded:', process.env.PAYSTACK_PUBLIC_KEY ? 'Yes' : 'No');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const config = require('./config');
 
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courses');
@@ -24,19 +17,7 @@ const app = express();
 app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
-// CORS configuration - allow all origins for development
-app.use(cors({ 
-	origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
-	credentials: true,
-	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-// Debug middleware
-app.use((req, res, next) => {
-	console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-	next();
-});
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 
 // routes
 app.use('/api/auth', authRoutes);
@@ -45,38 +26,34 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/admin', adminRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || config.PORT || 5000;
 
-// health
-app.get('/health', (req, res) => {
-	res.json({ 
-		status: 'ok', 
-		timestamp: new Date().toISOString(),
-		mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-	});
-});
+console.log('MONGO_URI from env:', process.env.MONGO_URI);
+console.log('MONGO_URI from config:', config.MONGO_URI);
+console.log('PORT:', PORT);
 
-// Simple test endpoint
-app.get('/test', (req, res) => {
-	res.json({ 
-		message: 'Backend is working!', 
-		timestamp: new Date().toISOString(),
-		mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-	});
-});
+const mongoUri = process.env.MONGO_URI || config.MONGO_URI || 'mongodb://localhost:27017/farmers-lms';
+console.log('Using MONGO_URI:', mongoUri);
 
-const mongoUri = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
-if (mongoUri) {
-	mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
-		.then(() => {
-			console.log('MongoDB connected');
-			app.listen(PORT, () => console.log(`Server running on ${PORT}`));
-		})
-		.catch(err => {
-			console.error('MongoDB connection error:', err.message);
-			app.listen(PORT, () => console.log(`Server running without DB on ${PORT}`));
-		});
-} else {
-	console.warn('MONGO_URI not set. Starting server without DB connection.');
-	app.listen(PORT, () => console.log(`Server running without DB on ${PORT}`));
-}
+// Try to connect to MongoDB, but don't fail if it's not available
+mongoose.connect(mongoUri)
+  .then(() => {
+    console.log('MongoDB connected');
+    app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+  })
+  .catch(err => {
+    console.error('MongoDB connection failed:', err.message);
+    console.log('Starting server without database connection...');
+    console.log('To fix this, please:');
+    console.log('1. Install MongoDB locally, OR');
+    console.log('2. Set up MongoDB Atlas and update MONGO_URI in .env file');
+    console.log('3. Or use: mongodb://localhost:27017/farmers-lms if MongoDB is running');
+    
+    // Start server anyway for development
+    app.listen(PORT, () => {
+      console.log(`Server running on ${PORT} (without database)`);
+      console.log('Note: Database features will not work until MongoDB is connected');
+    });
+  });
+  
+ 
