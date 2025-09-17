@@ -22,19 +22,17 @@ const PaymentCallback = () => {
 				const paymentRef = reference || trxref;
 				console.log('Verifying payment with reference:', paymentRef);
 
-				const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000')}/api/payments/verify`, {
-					method: 'POST',
+				const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000')}/api/payments/verify/${paymentRef}`, {
+					method: 'GET',
 					headers: {
-						'Content-Type': 'application/json',
 						'Authorization': `Bearer ${localStorage.getItem('token')}`
-					},
-					body: JSON.stringify({ reference: paymentRef })
+					}
 				});
 
 				const data = await response.json();
 				console.log('Payment verification response:', data);
 
-				if (response.ok) {
+				if (response.ok && data.success) {
 					setStatus('success');
 					setMessage(data.message || 'Payment successful! You are now enrolled in the course.');
 					

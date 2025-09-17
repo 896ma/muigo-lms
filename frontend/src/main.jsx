@@ -817,11 +817,6 @@ const CourseDetail = ({ courseSlug }) => {
 		const token = localStorage.getItem('token');
 		const userData = localStorage.getItem('user');
 		const isAuth = !!(token && userData);
-		console.log('🔍 Auth status check:', {
-			token: token ? 'Present' : 'Missing',
-			userData: userData ? 'Present' : 'Missing',
-			isAuthenticated: isAuth
-		});
 		setIsAuthenticated(isAuth);
 	};
 
@@ -939,12 +934,6 @@ const CourseDetail = ({ courseSlug }) => {
 		const token = localStorage.getItem('token');
 		const userData = localStorage.getItem('user');
 		
-		console.log('🔍 Payment auth check:', {
-			token: token ? 'Present' : 'Missing',
-			userData: userData ? 'Present' : 'Missing',
-			isAuthenticated: isAuthenticated
-		});
-		
 		if (!token || !userData) {
 			alert('Please log in first to make a payment');
 			window.location.href = '/login';
@@ -953,21 +942,11 @@ const CourseDetail = ({ courseSlug }) => {
 
 		try {
 			setEnrolling(true);
-			console.log('🚀 Initializing Paystack M-Pesa payment for course:', course._id);
-			console.log('🚀 Using token:', token ? 'Present' : 'Missing');
-			console.log('🚀 Token preview:', token ? token.substring(0, 20) + '...' : 'None');
-			console.log('🚀 API Base URL:', getApiBaseUrl());
 			
 			const requestBody = {
 				courseId: course._id,
 				phoneNumber: '254712345678' // Default phone number, user will enter on Paystack
 			};
-			
-			console.log('🚀 Request body:', requestBody);
-			console.log('🚀 Request headers:', {
-				'Authorization': `Bearer ${token}`,
-				'Content-Type': 'application/json'
-			});
 			
 			// Use the M-Pesa specific endpoint that redirects to Paystack with mobile money channels
 			const response = await fetch(`${getApiBaseUrl()}/api/payments/initiate-mpesa`, {

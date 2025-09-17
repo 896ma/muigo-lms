@@ -86,26 +86,48 @@ router.post('/webhook', express.json({ type: '*/*' }), async (req, res) => {
 });
 
 // 3) Verify via reference - GET endpoint for redirects
-router.get('/verify/:reference', async (req, res) => {
+router.get('/verify/:reference', requireAuth, async (req, res) => {
   const ref = req.params.reference;
+  console.log('🔍 Verifying payment with reference:', ref);
+  
   try {
     const resp = await axios.get(`https://api.paystack.co/transaction/verify/${ref}`, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
     });
+    
+    console.log('🔍 Paystack verification response:', resp.data);
     const data = resp.data.data;
+    
     if(data.status === 'success') {
+      console.log('✅ Payment successful, processing enrollment...');
+      
       // Mark payment/enroll if not already done
       const payment = await Payment.findOne({ reference: ref });
       if(payment && payment.status !== 'success') {
          payment.status = 'success';
          await payment.save();
-         await Enrollment.create({ user: payment.user, course: payment.course });
+         
+         // Check if enrollment already exists
+         const existingEnrollment = await Enrollment.findOne({ 
+           user: payment.user, 
+           course: payment.course 
+         });
+         
+         if (!existingEnrollment) {
+           await Enrollment.create({ user: payment.user, course: payment.course });
+           console.log('✅ Enrollment created successfully');
+         } else {
+           console.log('ℹ️ Enrollment already exists');
+         }
       }
-      return res.json({ success: true, message: 'Payment verified' });
+      return res.json({ success: true, message: 'Payment verified and enrollment completed' });
+    } else {
+      console.log('❌ Payment not successful, status:', data.status);
+      res.status(400).json({ success: false, message: 'Payment not successful' });
     }
-    res.status(400).json({ success:false, message:'Payment not successful' });
   } catch (err) {
-    res.status(500).json({ message: 'Verification failed' });
+    console.error('❌ Payment verification error:', err.response?.data || err.message);
+    res.status(500).json({ success: false, message: 'Verification failed', error: err.message });
   }
 });
 

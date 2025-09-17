@@ -43,7 +43,7 @@ const sampleCourses = [
         description: 'Master efficient irrigation techniques to optimize water usage and maximize crop yields. Learn about different irrigation systems, water management, and sustainable practices.',
         category: 'Water Management',
         coverImage: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=80&w=1600&auto=format&fit=crop',
-        price: 75,
+        price: 18,
         currency: 'KES',
         isFree: false,
         lessons: [
@@ -76,7 +76,7 @@ const sampleCourses = [
         description: 'Protect your crops using safe, environmentally friendly pest management strategies. Learn about beneficial insects, natural repellents, and integrated pest management.',
         category: 'Pest Management',
         coverImage: 'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?q=80&w=1600&auto=format&fit=crop',
-        price: 100,
+        price: 15,
         currency: 'KES',
         isFree: false,
         lessons: [
@@ -109,7 +109,7 @@ const sampleCourses = [
         description: 'Master advanced techniques for maximizing crop yields and quality. Learn about crop rotation, intercropping, precision farming, and modern agricultural technologies.',
         category: 'Crop Management',
         coverImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop',
-        price: 150,
+        price: 12,
         currency: 'KES',
         isFree: false,
         lessons: [
@@ -175,7 +175,7 @@ const sampleCourses = [
         description: 'Learn environmentally conscious farming methods that promote long-term sustainability. Discover techniques for reducing environmental impact while maintaining productivity and profitability.',
         category: 'Sustainability',
         coverImage: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=1600&auto=format&fit=crop',
-        price: 120,
+        price: 10,
         currency: 'KES',
         isFree: false,
         lessons: [
@@ -219,10 +219,7 @@ async function seedDatabase() {
         const mongoUri = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
         
         // Connect to MongoDB Atlas
-        await mongoose.connect(mongoUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+        await mongoose.connect(mongoUri);
         console.log('✅ Connected to MongoDB Atlas');
 
         // Clear existing courses
