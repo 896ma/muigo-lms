@@ -1,131 +1,223 @@
-# Farmers LMS
+# 🌾 Farmers LMS - Learning Management System
 
-A comprehensive Learning Management System designed specifically for farmers, featuring both free and paid courses with integrated payment processing.
+A comprehensive Learning Management System designed specifically for farmers to access agricultural courses, track their learning progress, and manage their educational journey.
 
-## Features
+## 🚀 Quick Start
 
-- **Course Management**: Free and paid courses with detailed content
-- **Payment Integration**: Paystack integration for secure payments
-- **User Authentication**: JWT-based authentication system
-- **Progress Tracking**: Monitor learning progress and course completion
-- **Admin Dashboard**: Manage courses, users, and payments
-- **Responsive Design**: Mobile-friendly interface with dark theme
+```bash
+# Clone the repository
+git clone https://github.com/896ma/muigo-lms.git
+cd farmers-lms
 
-## Tech Stack
+# Install dependencies
+npm install
+cd backend && npm install
+cd ../frontend && npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Seed the database
+cd backend && node seed.js
+
+# Start development server
+npm run dev
+```
+
+## 🌟 Features
+
+- **📚 Course Management**: Free and paid agricultural courses
+- **💳 M-Pesa Payments**: Integrated payment processing via Paystack
+- **👤 User Authentication**: Secure registration and login
+- **📊 Progress Tracking**: Monitor learning progress
+- **🎯 Admin Dashboard**: Course and user management
+- **📱 Responsive Design**: Mobile-friendly interface
+
+## 🛠 Technology Stack
 
 ### Backend
-- Node.js with Express
-- MongoDB with Mongoose
-- JWT for authentication
-- Paystack for payments
-- bcryptjs for password hashing
+- Node.js + Express.js
+- MongoDB Atlas
+- JWT Authentication
+- Paystack API Integration
 
 ### Frontend
-- React with Vite
-- React Router for navigation
-- Tailwind CSS for styling
-- Axios for API calls
+- React + Vite
+- Tailwind CSS
+- React Router
+- Axios
 
-## Setup Instructions
+## 📖 Documentation
 
-### Prerequisites
-- Node.js (v14 or higher)
-- MongoDB (local or cloud)
-- Paystack account (for payments)
+For complete documentation, see [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md)
 
-### Backend Setup
+## 🔧 Configuration
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+### Environment Variables
+```env
+MONGO_URI=your_mongodb_connection_string
+PAYSTACK_SECRET_KEY=your_paystack_secret_key
+PAYSTACK_PUBLIC_KEY=your_paystack_public_key
+JWT_SECRET=your_jwt_secret
+FRONTEND_URL=http://localhost:5173
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+## 🎯 Course Pricing
 
-3. Create environment file:
-   ```bash
-   cp .env.example .env
-   ```
+| Course | Price | Status |
+|--------|-------|--------|
+| Irrigation 101 | Ksh 18 | Paid |
+| Organic Pest Control | Ksh 15 | Paid |
+| Advanced Crop Management | Ksh 12 | Paid |
+| Sustainable Farming Practices | Ksh 10 | Paid |
+| Soil Health Basics | Free | Free |
+| Market Readiness | Free | Free |
 
-4. Update `.env` with your configuration:
-   - Set your MongoDB connection string
-   - Add your JWT secret key
-   - Configure Paystack keys (get from Paystack dashboard)
+## 🔐 Authentication
 
-5. Seed the database with sample courses:
-   ```bash
-   npm run seed
-   ```
+- **Registration**: Create new farmer accounts
+- **Login**: Secure JWT-based authentication
+- **Roles**: Farmer and Admin roles
+- **Session**: 7-day token expiration
 
-6. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## 💳 Payment Integration
 
-### Frontend Setup
+- **Provider**: Paystack
+- **Method**: M-Pesa Mobile Money
+- **Flow**: Redirect-based payment processing
+- **Verification**: Automatic payment verification
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-## Usage
-
-1. **Browse Courses**: Visit `/courses` to see all available courses
-2. **View Course Details**: Click on any course to see detailed information
-3. **Enroll in Free Courses**: Free courses can be enrolled in directly
-4. **Purchase Paid Courses**: Paid courses redirect to Paystack for secure payment
-5. **Track Progress**: Visit `/portal` to see enrolled courses and progress
-6. **Admin Access**: Use `/admin` for course and user management
-
-## Course Structure
-
-Each course includes:
-- Title and description
-- Cover image
-- Price (Free or Ksh 50)
-- Multiple lessons with content
-- Video URLs and duration
-- Progress tracking
-
-## Payment Flow
-
-1. User clicks "Pay & Enroll" on a paid course
-2. System initializes Paystack payment
-3. User is redirected to Paystack payment page
-4. After successful payment, user is redirected back
-5. System verifies payment and enrolls user
-6. User gains access to course content
-
-## API Endpoints
-
-### Courses
-- `GET /api/courses` - List all courses
-- `GET /api/courses/:slug` - Get course details
-- `POST /api/courses/:id/enroll` - Enroll in free course
-
-### Payments
-- `POST /api/payments/initialize` - Initialize Paystack payment
-- `POST /api/payments/verify` - Verify payment and enroll user
+## 📱 API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
 
-## Environment Variables
+### Courses
+- `GET /api/courses` - Get all courses
+- `GET /api/courses/:slug` - Get course by slug
 
-### Backend (.env)
+### Payments
+- `POST /api/payments/initiate-mpesa` - Initiate M-Pesa payment
+- `GET /api/payments/verify/:reference` - Verify payment
+
+### Enrollments
+- `GET /api/enrollments/me` - Get user enrollments
+- `POST /api/enrollments` - Create enrollment
+
+## 🗄️ Database Schema
+
+### Users
+```javascript
+{
+  name: String,
+  email: String (unique),
+  passwordHash: String,
+  phone: String,
+  farmLocation: String,
+  role: String (default: 'farmer')
+}
 ```
+
+### Courses
+```javascript
+{
+  title: String,
+  slug: String (unique),
+  description: String,
+  price: Number,
+  currency: String (default: 'KES'),
+  isFree: Boolean,
+  lessons: [LessonSchema]
+}
+```
+
+## 🚀 Deployment
+
+### Prerequisites
+- Node.js (v18+)
+- MongoDB Atlas account
+- Paystack account
+
+### Production Setup
+1. Set production environment variables
+2. Build frontend: `npm run build`
+3. Start backend: `npm start`
+4. Configure reverse proxy (nginx/apache)
+
+## 🔧 Development
+
+### Available Scripts
+   ```bash
+npm run dev          # Start development server
+npm run dev:backend  # Start backend only
+npm run dev:frontend # Start frontend only
+npm run build        # Build for production
+```
+
+### Project Structure
+```
+farmers-lms/
+├── backend/          # Express.js API
+├── frontend/         # React application
+├── .env             # Environment variables
+└── package.json     # Root dependencies
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+1. **MongoDB Connection**: Check connection string and network access
+2. **Payment Failures**: Verify Paystack keys and callback URLs
+3. **Authentication**: Ensure JWT secret is set correctly
+4. **Port Conflicts**: Update .env with correct ports
+
+### Debug Mode
+   ```bash
+NODE_ENV=development npm run dev
+```
+
+## 📊 Performance
+
+- **Database**: MongoDB Atlas with connection pooling
+- **Caching**: LocalStorage for authentication
+- **Images**: Optimized Unsplash images
+- **Responsive**: Mobile-first design
+
+## 🔒 Security
+
+- **Password Hashing**: bcryptjs with salt rounds
+- **JWT Security**: Secure secret keys
+- **Input Validation**: Server-side validation
+- **HTTPS**: All payment communications encrypted
+
+## 📈 Roadmap
+
+- [ ] Video streaming integration
+- [ ] Progress analytics
+- [ ] Course certificates
+- [ ] Mobile app (React Native)
+- [ ] Offline mode (PWA)
+- [ ] Multi-language support
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📄 License
+
+This project is proprietary software. All rights reserved.
+
+## 📞 Support
+
+For support or questions:
+- Create an issue in the repository
+- Contact through GitHub
+
+---
+
+**Built with ❤️ for farmers and agricultural education**

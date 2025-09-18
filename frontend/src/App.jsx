@@ -2,7 +2,7 @@ import { Outlet, Link } from 'react-router-dom'
 import Footer from './components/Footer.jsx'
 import { useState, useMemo } from 'react'
 
-function Navbar({ isDark }) {
+function Navbar() {
 	const hoverClass = 'hover:bg-jungle-700'
 	return (
 		<nav className="border-b bg-jungle-800 border-jungle-600">
@@ -30,7 +30,7 @@ export default function AppLayout() {
 	, [isDark])
 	return (
 		<div className={containerClass}>
-			<Navbar isDark={isDark} />
+			<Navbar />
 			<main className="max-w-6xl mx-auto px-4 py-8">
 				<Outlet />
 			</main>

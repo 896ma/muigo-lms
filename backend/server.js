@@ -28,12 +28,9 @@ app.use('/api/admin', adminRoutes);
 
 const PORT = process.env.PORT || config.PORT || 5000;
 
-console.log('MONGO_URI from env:', process.env.MONGO_URI);
-console.log('MONGO_URI from config:', config.MONGO_URI);
-console.log('PORT:', PORT);
+// Server configuration loaded
 
 const mongoUri = process.env.MONGO_URI || config.MONGO_URI || 'mongodb://localhost:27017/farmers-lms';
-console.log('Using MONGO_URI:', mongoUri);
 
 // Try to connect to MongoDB, but don't fail if it's not available
 mongoose.connect(mongoUri)

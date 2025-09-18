@@ -159,7 +159,7 @@ const CourseDetail = () => {
                     } else {
                         alert('No lessons available for this course yet.');
                     }
-                } catch (err) {
+                } catch {
                     // If enrollment fails, show a message but still unlock content
                     alert('Free course content unlocked! (Note: Full enrollment requires login)');
                     setIsEnrolled(true);

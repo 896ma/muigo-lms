@@ -33,14 +33,9 @@ router.post('/initiate', requireAuth, async (req, res) => {
   };
 
   try {
-    console.log('Paystack API Key:', process.env.PAYSTACK_SECRET_KEY ? 'Set' : 'Not set');
-    console.log('Payment payload:', payload);
-    
     const resp = await axios.post('https://api.paystack.co/transaction/initialize', payload, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
     });
-    
-    console.log('Paystack response:', resp.data);
     
     // store a pending Payment record with reference
     const { authorization_url, reference } = resp.data.data;
@@ -55,8 +50,7 @@ router.post('/initiate', requireAuth, async (req, res) => {
     });
     res.json({ authorization_url, reference });
   } catch(err) {
-    console.error('Paystack API Error:', err.response?.data || err.message);
-    console.error('Error details:', err.response?.status, err.response?.statusText);
+    console.error('Payment initiation failed:', err.response?.data?.message || err.message);
     res.status(500).json({ 
       message: 'Payment initiation failed', 
       error: err.response?.data?.message || err.message 
@@ -88,19 +82,15 @@ router.post('/webhook', express.json({ type: '*/*' }), async (req, res) => {
 // 3) Verify via reference - GET endpoint for redirects
 router.get('/verify/:reference', requireAuth, async (req, res) => {
   const ref = req.params.reference;
-  console.log('🔍 Verifying payment with reference:', ref);
   
   try {
     const resp = await axios.get(`https://api.paystack.co/transaction/verify/${ref}`, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
     });
     
-    console.log('🔍 Paystack verification response:', resp.data);
     const data = resp.data.data;
     
     if(data.status === 'success') {
-      console.log('✅ Payment successful, processing enrollment...');
-      
       // Mark payment/enroll if not already done
       const payment = await Payment.findOne({ reference: ref });
       if(payment && payment.status !== 'success') {
@@ -115,18 +105,14 @@ router.get('/verify/:reference', requireAuth, async (req, res) => {
          
          if (!existingEnrollment) {
            await Enrollment.create({ user: payment.user, course: payment.course });
-           console.log('✅ Enrollment created successfully');
-         } else {
-           console.log('ℹ️ Enrollment already exists');
          }
       }
       return res.json({ success: true, message: 'Payment verified and enrollment completed' });
     } else {
-      console.log('❌ Payment not successful, status:', data.status);
       res.status(400).json({ success: false, message: 'Payment not successful' });
     }
   } catch (err) {
-    console.error('❌ Payment verification error:', err.response?.data || err.message);
+    console.error('Payment verification error:', err.response?.data || err.message);
     res.status(500).json({ success: false, message: 'Verification failed', error: err.message });
   }
 });
@@ -135,11 +121,6 @@ router.get('/verify/:reference', requireAuth, async (req, res) => {
 router.post('/initiate-mpesa', requireAuth, async (req, res) => {
   const { courseId, phoneNumber } = req.body;
   const userId = req.user.id;
-  
-  console.log('📱 M-Pesa payment request received:');
-  console.log('  User ID:', userId);
-  console.log('  Course ID:', courseId);
-  console.log('  Phone Number:', phoneNumber);
 
   // Fetch user details
   const user = await User.findById(userId);
@@ -168,14 +149,9 @@ router.post('/initiate-mpesa', requireAuth, async (req, res) => {
   };
 
   try {
-    console.log('Paystack M-Pesa API Key:', process.env.PAYSTACK_SECRET_KEY ? 'Set' : 'Not set');
-    console.log('M-Pesa payment payload:', payload);
-    
     const resp = await axios.post('https://api.paystack.co/transaction/initialize', payload, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
     });
-    
-    console.log('Paystack M-Pesa response:', resp.data);
     
     // store a pending Payment record with reference
     const { authorization_url, reference } = resp.data.data;
@@ -191,8 +167,7 @@ router.post('/initiate-mpesa', requireAuth, async (req, res) => {
     });
     res.json({ authorization_url, reference });
   } catch(err) {
-    console.error('Paystack M-Pesa API Error:', err.response?.data || err.message);
-    console.error('Error details:', err.response?.status, err.response?.statusText);
+    console.error('M-Pesa payment initialization failed:', err.response?.data?.message || err.message);
     res.status(500).json({ 
       message: 'M-Pesa payment initialization failed', 
       error: err.response?.data?.message || err.message 

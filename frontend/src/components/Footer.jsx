@@ -28,8 +28,6 @@ export default function Footer() {
 						<li><a className="hover:underline" href="#">Our Story</a></li>
 						<li><a className="hover:underline" href="#">Blog</a></li>
 						<li><a className="hover:underline" href="#">Terms & Conditions</a></li>
-						<li><a className="hover:underline" href="#">Return Policy</a></li>
-						<li><a className="hover:underline" href="#">Wholesale</a></li>
 					</ul>
 				</div>
 			</div>

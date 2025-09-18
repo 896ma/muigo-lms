@@ -12,7 +12,6 @@ router.get('/test', async (req, res) => {
 			.populate('course', 'title slug')
 			.populate('user', 'name email')
 			.lean();
-		console.log('All enrollments in database:', enrollments);
 		res.json({ 
 			message: 'All enrollments', 
 			count: enrollments.length, 
@@ -26,16 +25,12 @@ router.get('/test', async (req, res) => {
 
 router.get('/me', requireAuth, async (req, res) => {
 	try {
-		console.log('Fetching enrollments for user:', req.user.id);
 		const mongoose = require('mongoose');
 		const userId = new mongoose.Types.ObjectId(req.user.id);
-		console.log('Converted user ID to ObjectId:', userId);
 		
 		const enrollments = await Enrollment.find({ user: userId })
 			.populate('course', 'title slug coverImage price currency description')
 			.lean();
-		console.log('Found enrollments:', enrollments.length);
-		console.log('Enrollment details:', enrollments);
 		res.json(enrollments);
 	} catch (error) {
 		console.error('Error fetching enrollments:', error);

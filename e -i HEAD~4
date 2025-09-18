@@ -1,5 +1,0 @@
-[33mda68956[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Remove .env file from tracking and add to .gitignore for security
-[33m702a92e[m  paystack
-[33m20c5263[m connection successful
-[33m19154ed[m connection successful
-[33mbc1e73d[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m payments

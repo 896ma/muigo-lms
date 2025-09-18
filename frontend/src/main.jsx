@@ -17,6 +17,8 @@ const Section = ({ title, children }) => (
 	</section>
 )
 
+export { Section }
+
 const Home = () => (
 	<div className="space-y-8">
 		<div className="bg-jungle text-white rounded-lg p-6">
@@ -33,6 +35,8 @@ const Home = () => (
 	</div>
 )
 
+export { Home }
+
 const Courses = () => (
 	<div className="space-y-6">
 		<Section title="All Courses">
@@ -40,6 +44,8 @@ const Courses = () => (
 		</Section>
 	</div>
 )
+
+export { Courses }
 
 const Login = () => {
 	const [formData, setFormData] = useState({
@@ -88,7 +94,7 @@ const Login = () => {
 			} else {
 				setError(data.message || 'Login failed');
 			}
-		} catch (err) {
+		} catch {
 			setError('Network error. Please try again.');
 		} finally {
 			setLoading(false);
@@ -187,7 +193,7 @@ const Register = () => {
 			} else {
 				setError(data.message || 'Registration failed');
 			}
-		} catch (err) {
+		} catch {
 			setError('Network error. Please try again.');
 		} finally {
 			setLoading(false);
@@ -478,15 +484,7 @@ const Portal = () => {
 			});
 			
 			if (response.ok) {
-			const data = await response.json();
-				console.log('Enrollments fetched:', data);
-				console.log('Number of enrollments:', data.length);
-				console.log('Enrollment details:', data.map(e => ({
-					id: e._id,
-					courseTitle: e.course?.title,
-					enrolledAt: e.enrolledAt,
-					status: e.status
-				})));
+				const data = await response.json();
 			setEnrollments(data);
 			} else {
 				console.error('Failed to fetch enrollments:', response.status);
@@ -701,8 +699,7 @@ function CourseGrid() {
 		try {
 			setLoading(true);
 			setError(null);
-			console.log('Attempting to fetch courses from API...');
-			console.log('API Base URL:', import.meta.env.VITE_API_URL || 'http://localhost:5000');
+		// Fetching courses from API
 			
 			// Try to fetch from API with a longer timeout
 			const controller = new AbortController();
@@ -711,24 +708,21 @@ function CourseGrid() {
 			const data = await apiGet('/api/courses', { signal: controller.signal });
 			clearTimeout(timeoutId);
 			
-			console.log('Courses fetched from API:', data);
 			if (data && data.length > 0) {
 				setCourses(data);
 				setUsingAPI(true);
-				console.log('Successfully loaded courses from API');
 			} else {
-				console.log('API returned empty data, using placeholders');
 				setCourses(placeholderCourses);
 				setUsingAPI(false);
 			}
-		} catch (err) {
-			console.error('Error fetching courses from API:', err);
+		} catch (error) {
+			console.error('Error fetching courses from API:', error);
 			console.error('Error details:', {
-				message: err.message,
-				name: err.name,
-				stack: err.stack
+				message: error.message,
+				name: error.name,
+				stack: error.stack
 			});
-			setError(err.message);
+			setError(error.message);
 			// Always fallback to placeholder data
 			setCourses(placeholderCourses);
 			setUsingAPI(false);
@@ -885,13 +879,11 @@ const CourseDetail = ({ courseSlug }) => {
 					
 					if (response.ok) {
 						const data = await response.json();
-						console.log('Enrollment response:', data);
 						alert(data.message || 'Successfully enrolled in free course!');
 						setIsEnrolled(true);
 						
 						// Refresh enrollments if portal is open and user is logged in
 						if (refreshEnrollments && token) {
-							console.log('Refreshing enrollments...');
 							refreshEnrollments();
 						}
 						
@@ -907,8 +899,8 @@ const CourseDetail = ({ courseSlug }) => {
 						console.error('Enrollment error response:', errorData);
 						throw new Error(errorData.message || 'Enrollment failed');
 					}
-				} catch (err) {
-					console.error('Enrollment error:', err);
+				} catch (error) {
+					console.error('Enrollment error:', error);
 					alert('Enrollment failed. Please try again or contact support.');
 				}
 			} else {
@@ -922,8 +914,8 @@ const CourseDetail = ({ courseSlug }) => {
 				// Redirect directly to Paystack M-Pesa payment
 				await handlePaystackMpesaPayment();
 			}
-		} catch (err) {
-			alert('Enrollment failed: ' + err.message);
+		} catch (error) {
+			alert('Enrollment failed: ' + error.message);
 		} finally {
 			setEnrolling(false);
 		}
@@ -960,7 +952,6 @@ const CourseDetail = ({ courseSlug }) => {
 			
 			if (response.ok) {
 				const paymentData = await response.json();
-				console.log('Paystack M-Pesa payment data received:', paymentData);
 				
 				// Store payment reference for verification
 				setPaymentReference(paymentData.reference);
@@ -968,7 +959,6 @@ const CourseDetail = ({ courseSlug }) => {
 				
 				// Redirect to Paystack payment page
 				if (paymentData.authorization_url) {
-					console.log('Redirecting to Paystack M-Pesa payment URL:', paymentData.authorization_url);
 					window.location.href = paymentData.authorization_url;
 				} else {
 					throw new Error('No authorization URL received from Paystack');
@@ -978,9 +968,9 @@ const CourseDetail = ({ courseSlug }) => {
 				console.error('Paystack M-Pesa payment error response:', errorData);
 				throw new Error(errorData.message || 'Paystack M-Pesa payment initialization failed');
 			}
-		} catch (err) {
-			console.error('Paystack M-Pesa payment initialization error:', err);
-			alert('Payment initialization failed: ' + err.message);
+		} catch (error) {
+			console.error('Paystack M-Pesa payment initialization error:', error);
+			alert('Payment initialization failed: ' + error.message);
 		} finally {
 			setEnrolling(false);
 		}
@@ -1004,10 +994,6 @@ const CourseDetail = ({ courseSlug }) => {
 
 				if (response.ok) {
 					const data = await response.json();
-					console.log('Payment verification response:', data);
-					console.log('Response message:', data.message);
-					console.log('Response status:', data.status);
-					console.log('Checking for success keywords...');
 					
 					// Check for successful payment - be more flexible with success detection
 					const isSuccess = data.message && (
@@ -1018,7 +1004,6 @@ const CourseDetail = ({ courseSlug }) => {
 						(data.payment && data.payment.status === 'success')
 					);
 					
-					console.log('Is success detected:', isSuccess);
 					
 					if (isSuccess) {
 						// Clear intervals and timeouts
@@ -1057,13 +1042,9 @@ const CourseDetail = ({ courseSlug }) => {
 						return; // Exit the function
 					} else if (data.status === 'pending') {
 						// Payment is still pending, continue waiting
-						console.log('Payment still pending...');
 						setPaymentStatus('pending');
 					} else {
 						// Payment failed or other status
-						console.log('Payment verification failed. Full response:', data);
-						console.log('Failed message:', data.message);
-						console.log('Failed status:', data.status);
 						setPaymentStatus('failed');
 					}
 				} else {
@@ -1096,10 +1077,8 @@ const CourseDetail = ({ courseSlug }) => {
 		try {
 			setLoading(true);
 			setError(null);
-			console.log(`Attempting to fetch course: ${courseSlug}`);
 			
 			const data = await apiGet(`/api/courses/${courseSlug}`);
-			console.log('Course fetched from API:', data);
 			setCourse(data);
 			
 			// Check enrollment status
@@ -1126,17 +1105,17 @@ const CourseDetail = ({ courseSlug }) => {
 					} else {
 						setIsEnrolled(false);
 					}
-				} catch (err) {
-					console.error('Error checking enrollment:', err);
+				} catch (error) {
+					console.error('Error checking enrollment:', error);
 					setIsEnrolled(false);
 				}
 			} else {
 				// Not authenticated and not free course
 				setIsEnrolled(false);
 			}
-		} catch (err) {
-			console.error('Error fetching course from API:', err);
-			setError(err.message);
+		} catch (error) {
+			console.error('Error fetching course from API:', error);
+			setError(error.message);
 			// Fallback to placeholder data
 			const fallbackCourse = placeholderCourses.find(c => c.slug === courseSlug);
 			setCourse(fallbackCourse);
@@ -1345,7 +1324,7 @@ const CourseDetail = ({ courseSlug }) => {
 										onClick={() => {
 											setPaymentStatus(null);
 											setPaymentReference(null);
-											setShowPaymentOptions(true);
+											window.location.reload();
 										}}
 										className="mt-2 px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
 									>
@@ -1369,7 +1348,7 @@ const CourseDetail = ({ courseSlug }) => {
 										onClick={() => {
 											setPaymentStatus(null);
 											setPaymentReference(null);
-											setShowPaymentOptions(true);
+											window.location.reload();
 										}}
 										className="mt-2 px-4 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors"
 									>
@@ -1467,6 +1446,9 @@ const router = createBrowserRouter([
     ],
   },
 ])
+
+// Export all components for Fast Refresh
+export { Login, Register, Admin, Portal, CourseGrid, CourseDetail, CourseDetailWrapper, PaymentCallback }
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
