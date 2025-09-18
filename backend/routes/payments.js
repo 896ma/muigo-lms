@@ -22,6 +22,33 @@ router.post('/initiate', requireAuth, async (req, res) => {
   const course = await Course.findById(courseId);
   if(!course) return res.status(404).json({ message: 'Course not found' });
 
+  // Check if user is already enrolled in this course
+  const existingEnrollment = await Enrollment.findOne({ 
+    user: userId, 
+    course: courseId 
+  });
+  
+  if (existingEnrollment) {
+    return res.status(400).json({ 
+      message: 'You are already enrolled in this course',
+      alreadyEnrolled: true 
+    });
+  }
+
+  // Check if there's already a successful payment for this course
+  const existingPayment = await Payment.findOne({ 
+    user: userId, 
+    course: courseId, 
+    status: 'success' 
+  });
+  
+  if (existingPayment) {
+    return res.status(400).json({ 
+      message: 'You have already paid for this course',
+      alreadyPaid: true 
+    });
+  }
+
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);
 
@@ -128,6 +155,33 @@ router.post('/initiate-mpesa', requireAuth, async (req, res) => {
 
   const course = await Course.findById(courseId);
   if(!course) return res.status(404).json({ message: 'Course not found' });
+
+  // Check if user is already enrolled in this course
+  const existingEnrollment = await Enrollment.findOne({ 
+    user: userId, 
+    course: courseId 
+  });
+  
+  if (existingEnrollment) {
+    return res.status(400).json({ 
+      message: 'You are already enrolled in this course',
+      alreadyEnrolled: true 
+    });
+  }
+
+  // Check if there's already a successful payment for this course
+  const existingPayment = await Payment.findOne({ 
+    user: userId, 
+    course: courseId, 
+    status: 'success' 
+  });
+  
+  if (existingPayment) {
+    return res.status(400).json({ 
+      message: 'You have already paid for this course',
+      alreadyPaid: true 
+    });
+  }
 
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);

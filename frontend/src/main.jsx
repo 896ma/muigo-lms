@@ -1,4 +1,4 @@
-import { StrictMode, useState, useEffect } from 'react'
+import { StrictMode, useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, useParams } from 'react-router-dom'
 import './index.css'
@@ -282,15 +282,33 @@ const Admin = () => {
 		activeUsers: 0
 	});
 	const [users, setUsers] = useState([]);
+	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [user, setUser] = useState(null);
+	const [showUserModal, setShowUserModal] = useState(false);
+	const [showCourseModal, setShowCourseModal] = useState(false);
+	const [editingUser, setEditingUser] = useState(null);
+	const [editingCourse, setEditingCourse] = useState(null);
+	const [userForm, setUserForm] = useState({
+		name: '',
+		email: '',
+		phone: '',
+		farmLocation: '',
+		role: 'farmer'
+	});
+	const [courseForm, setCourseForm] = useState({
+		title: '',
+		description: '',
+		category: '',
+		coverImage: '',
+		price: 0,
+		currency: 'KES',
+		isFree: false,
+		lessons: []
+	});
 
-	useEffect(() => {
-		checkAuth();
-	}, []);
-
-	const checkAuth = () => {
+	const checkAuth = useCallback(() => {
 		const token = localStorage.getItem('token');
 		const userData = localStorage.getItem('user');
 		
@@ -301,13 +319,18 @@ const Admin = () => {
 				setUser(parsedUser);
 				fetchStats();
 				fetchUsers();
+				fetchCourses();
 			} else {
 				setIsAuthenticated(false);
 			}
 		} else {
 			setIsAuthenticated(false);
 		}
-	};
+	}, []);
+
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
 
 	const fetchStats = async () => {
 		try {
@@ -343,40 +366,388 @@ const Admin = () => {
 		}
 	};
 
+	const fetchCourses = async () => {
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/courses`, {
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				}
+			});
+			const data = await response.json();
+			setCourses(data);
+		} catch (error) {
+			console.error('Error fetching courses:', error);
+		}
+	};
+
+	// User CRUD operations
+	const createUser = async (userData) => {
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/users`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(userData)
+			});
+			const data = await response.json();
+			if (response.ok) {
+				fetchUsers();
+				setShowUserModal(false);
+				resetUserForm();
+				alert('User created successfully!');
+			} else {
+				alert('Error creating user: ' + data.message);
+			}
+		} catch (error) {
+			console.error('Error creating user:', error);
+			alert('Error creating user');
+		}
+	};
+
+	const updateUser = async (userId, userData) => {
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/users/${userId}`, {
+				method: 'PUT',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(userData)
+			});
+			const data = await response.json();
+			if (response.ok) {
+				fetchUsers();
+				setShowUserModal(false);
+				setEditingUser(null);
+				resetUserForm();
+				alert('User updated successfully!');
+			} else {
+				alert('Error updating user: ' + data.message);
+			}
+		} catch (error) {
+			console.error('Error updating user:', error);
+			alert('Error updating user');
+		}
+	};
+
+	const deleteUser = async (userId) => {
+		if (!confirm('Are you sure you want to delete this user?')) return;
+		
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/users/${userId}`, {
+				method: 'DELETE',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				}
+			});
+			const data = await response.json();
+			if (response.ok) {
+				fetchUsers();
+				alert('User deleted successfully!');
+			} else {
+				alert('Error deleting user: ' + data.message);
+			}
+		} catch (error) {
+			console.error('Error deleting user:', error);
+			alert('Error deleting user');
+		}
+	};
+
+	// Course CRUD operations
+	const createCourse = async (courseData) => {
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/courses`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(courseData)
+			});
+			const data = await response.json();
+			if (response.ok) {
+				fetchCourses();
+				setShowCourseModal(false);
+				resetCourseForm();
+				alert('Course created successfully!');
+			} else {
+				alert('Error creating course: ' + data.message);
+			}
+		} catch (error) {
+			console.error('Error creating course:', error);
+			alert('Error creating course');
+		}
+	};
+
+	const updateCourse = async (courseId, courseData) => {
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/courses/${courseId}`, {
+				method: 'PUT',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(courseData)
+			});
+			const data = await response.json();
+			if (response.ok) {
+				fetchCourses();
+				setShowCourseModal(false);
+				setEditingCourse(null);
+				resetCourseForm();
+				alert('Course updated successfully!');
+			} else {
+				alert('Error updating course: ' + data.message);
+			}
+		} catch (error) {
+			console.error('Error updating course:', error);
+			alert('Error updating course');
+		}
+	};
+
+	const deleteCourse = async (courseId) => {
+		if (!confirm('Are you sure you want to delete this course?')) return;
+		
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/admin/courses/${courseId}`, {
+				method: 'DELETE',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				}
+			});
+			const data = await response.json();
+			if (response.ok) {
+				fetchCourses();
+				alert('Course deleted successfully!');
+			} else {
+				alert('Error deleting course: ' + data.message);
+			}
+		} catch (error) {
+			console.error('Error deleting course:', error);
+			alert('Error deleting course');
+		}
+	};
+
+	// Form handlers
+	const resetUserForm = () => {
+		setUserForm({
+			name: '',
+			email: '',
+			phone: '',
+			farmLocation: '',
+			role: 'farmer'
+		});
+		setEditingUser(null);
+	};
+
+	const resetCourseForm = () => {
+		setCourseForm({
+			title: '',
+			description: '',
+			category: '',
+			coverImage: '',
+			price: 0,
+			currency: 'KES',
+			isFree: false,
+			lessons: []
+		});
+		setEditingCourse(null);
+	};
+
+	const handleUserSubmit = (e) => {
+		e.preventDefault();
+		if (editingUser) {
+			updateUser(editingUser._id, userForm);
+		} else {
+			createUser(userForm);
+		}
+	};
+
+	const handleCourseSubmit = (e) => {
+		e.preventDefault();
+		if (editingCourse) {
+			updateCourse(editingCourse._id, courseForm);
+		} else {
+			createCourse(courseForm);
+		}
+	};
+
+	const openUserModal = (user = null) => {
+		if (user) {
+			setEditingUser(user);
+			setUserForm({
+				name: user.name,
+				email: user.email,
+				phone: user.phone || '',
+				farmLocation: user.farmLocation || '',
+				role: user.role
+			});
+		} else {
+			resetUserForm();
+		}
+		setShowUserModal(true);
+	};
+
+	const openCourseModal = (course = null) => {
+		if (course) {
+			setEditingCourse(course);
+			setCourseForm({
+				title: course.title,
+				description: course.description || '',
+				category: course.category || '',
+				coverImage: course.coverImage || '',
+				price: course.price || 0,
+				currency: course.currency || 'KES',
+				isFree: course.isFree || false,
+				lessons: course.lessons || []
+			});
+		} else {
+			resetCourseForm();
+		}
+		setShowCourseModal(true);
+	};
+
 	const UsersTable = () => (
-		<div className="overflow-x-auto">
-			<table className="min-w-full divide-y divide-gray-200">
-				<thead className="bg-gray-50">
-					<tr>
-						<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-						<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-						<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-						<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm Location</th>
-						<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-						<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
-					</tr>
-				</thead>
-				<tbody className="bg-white divide-y divide-gray-200">
-					{users.map((user) => (
-						<tr key={user._id}>
-							<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">{user.name}</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.email}</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.phone || 'N/A'}</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.farmLocation || 'N/A'}</td>
-							<td className="px-6 py-4 whitespace-nowrap">
-								<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-									user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-								}`}>
-									{user.role}
-								</span>
-							</td>
-							<td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-								{new Date(user.createdAt).toLocaleDateString()}
-							</td>
+		<div>
+			<div className="flex justify-between items-center mb-4">
+				<h3 className="text-lg font-semibold">Users Management</h3>
+				<button
+					onClick={() => openUserModal()}
+					className="px-4 py-2 bg-jungle-500 text-white rounded hover:bg-jungle-600 transition-colors"
+				>
+					Add New User
+				</button>
+			</div>
+			<div className="overflow-x-auto">
+				<table className="min-w-full divide-y divide-gray-200">
+					<thead className="bg-gray-50">
+						<tr>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm Location</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
 						</tr>
-					))}
-				</tbody>
-			</table>
+					</thead>
+					<tbody className="bg-white divide-y divide-gray-200">
+						{users.map((user) => (
+							<tr key={user._id}>
+								<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">{user.name}</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.email}</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.phone || 'N/A'}</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{user.farmLocation || 'N/A'}</td>
+								<td className="px-6 py-4 whitespace-nowrap">
+									<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+										user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+									}`}>
+										{user.role}
+									</span>
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-black">
+									{new Date(user.createdAt).toLocaleDateString()}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+									<div className="flex space-x-2">
+										<button
+											onClick={() => openUserModal(user)}
+											className="text-jungle-600 hover:text-jungle-900"
+										>
+											Edit
+										</button>
+										{user.role !== 'admin' && (
+											<button
+												onClick={() => deleteUser(user._id)}
+												className="text-red-600 hover:text-red-900"
+											>
+												Delete
+											</button>
+										)}
+									</div>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	);
+
+	const CoursesTable = () => (
+		<div>
+			<div className="flex justify-between items-center mb-4">
+				<h3 className="text-lg font-semibold">Courses Management</h3>
+				<button
+					onClick={() => openCourseModal()}
+					className="px-4 py-2 bg-jungle-500 text-white rounded hover:bg-jungle-600 transition-colors"
+				>
+					Add New Course
+				</button>
+			</div>
+			<div className="overflow-x-auto">
+				<table className="min-w-full divide-y divide-gray-200">
+					<thead className="bg-gray-50">
+						<tr>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+						</tr>
+					</thead>
+					<tbody className="bg-white divide-y divide-gray-200">
+						{courses.map((course) => (
+							<tr key={course._id}>
+								<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">{course.title}</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-black">{course.category || 'N/A'}</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-black">
+									{course.isFree ? 'Free' : `${course.currency} ${course.price}`}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap">
+									<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+										course.isFree ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+									}`}>
+										{course.isFree ? 'Free' : 'Paid'}
+									</span>
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-black">
+									{new Date(course.createdAt).toLocaleDateString()}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+									<div className="flex space-x-2">
+										<button
+											onClick={() => openCourseModal(course)}
+											className="text-jungle-600 hover:text-jungle-900"
+										>
+											Edit
+										</button>
+										<button
+											onClick={() => deleteCourse(course._id)}
+											className="text-red-600 hover:text-red-900"
+										>
+											Delete
+										</button>
+									</div>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
 		</div>
 	);
 
@@ -403,8 +774,20 @@ const Admin = () => {
 
 	return (
 		<Section title="Admin Dashboard">
-			<div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-				Welcome back, {user?.name}! You are logged in as an administrator.
+			<div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded flex justify-between items-center">
+				<div>
+					Welcome back, {user?.name}! You are logged in as an administrator.
+				</div>
+				<button
+					onClick={() => {
+						localStorage.removeItem('token');
+						localStorage.removeItem('user');
+						window.location.href = '/login';
+					}}
+					className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+				>
+					Logout
+				</button>
 			</div>
 			
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -438,6 +821,188 @@ const Admin = () => {
 					{ label: 'Payments', content: <div>Payments table (coming soon)</div> },
 				]} />
 			)}
+
+			{/* User Modal */}
+			{showUserModal && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white rounded-lg p-6 w-full max-w-md">
+						<h3 className="text-lg font-semibold mb-4">
+							{editingUser ? 'Edit User' : 'Add New User'}
+						</h3>
+						<form onSubmit={handleUserSubmit}>
+							<div className="space-y-4">
+								<div>
+									<label className="block text-sm font-medium text-gray-700">Name</label>
+									<input
+										type="text"
+										value={userForm.name}
+										onChange={(e) => setUserForm({...userForm, name: e.target.value})}
+										className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+										required
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700">Email</label>
+									<input
+										type="email"
+										value={userForm.email}
+										onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+										className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+										required
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700">Phone</label>
+									<input
+										type="text"
+										value={userForm.phone}
+										onChange={(e) => setUserForm({...userForm, phone: e.target.value})}
+										className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700">Farm Location</label>
+									<input
+										type="text"
+										value={userForm.farmLocation}
+										onChange={(e) => setUserForm({...userForm, farmLocation: e.target.value})}
+										className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700">Role</label>
+									<select
+										value={userForm.role}
+										onChange={(e) => setUserForm({...userForm, role: e.target.value})}
+										className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+									>
+										<option value="farmer">Farmer</option>
+										<option value="admin">Admin</option>
+									</select>
+								</div>
+							</div>
+							<div className="flex justify-end space-x-2 mt-6">
+								<button
+									type="button"
+									onClick={() => setShowUserModal(false)}
+									className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									className="px-4 py-2 bg-jungle-500 text-white rounded-md hover:bg-jungle-600"
+								>
+									{editingUser ? 'Update' : 'Create'}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+
+			{/* Course Modal */}
+			{showCourseModal && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+						<h3 className="text-lg font-semibold mb-4">
+							{editingCourse ? 'Edit Course' : 'Add New Course'}
+						</h3>
+						<form onSubmit={handleCourseSubmit}>
+							<div className="space-y-4">
+								<div>
+									<label className="block text-sm font-medium text-gray-700">Title</label>
+									<input
+										type="text"
+										value={courseForm.title}
+										onChange={(e) => setCourseForm({...courseForm, title: e.target.value})}
+										className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+										required
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700">Description</label>
+									<textarea
+										value={courseForm.description}
+										onChange={(e) => setCourseForm({...courseForm, description: e.target.value})}
+										className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+										rows="3"
+									/>
+								</div>
+								<div className="grid grid-cols-2 gap-4">
+									<div>
+										<label className="block text-sm font-medium text-gray-700">Category</label>
+										<input
+											type="text"
+											value={courseForm.category}
+											onChange={(e) => setCourseForm({...courseForm, category: e.target.value})}
+											className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+										/>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">Cover Image URL</label>
+										<input
+											type="url"
+											value={courseForm.coverImage}
+											onChange={(e) => setCourseForm({...courseForm, coverImage: e.target.value})}
+											className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+										/>
+									</div>
+								</div>
+								<div className="grid grid-cols-3 gap-4">
+									<div>
+										<label className="block text-sm font-medium text-gray-700">Price</label>
+										<input
+											type="number"
+											value={courseForm.price}
+											onChange={(e) => setCourseForm({...courseForm, price: parseFloat(e.target.value) || 0})}
+											className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+											min="0"
+										/>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">Currency</label>
+										<select
+											value={courseForm.currency}
+											onChange={(e) => setCourseForm({...courseForm, currency: e.target.value})}
+											className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+										>
+											<option value="KES">KES</option>
+											<option value="USD">USD</option>
+										</select>
+									</div>
+									<div className="flex items-center">
+										<label className="flex items-center">
+											<input
+												type="checkbox"
+												checked={courseForm.isFree}
+												onChange={(e) => setCourseForm({...courseForm, isFree: e.target.checked})}
+												className="mr-2"
+											/>
+											<span className="text-sm font-medium text-gray-700">Free Course</span>
+										</label>
+									</div>
+								</div>
+							</div>
+							<div className="flex justify-end space-x-2 mt-6">
+								<button
+									type="button"
+									onClick={() => setShowCourseModal(false)}
+									className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									className="px-4 py-2 bg-jungle-500 text-white rounded-md hover:bg-jungle-600"
+								>
+									{editingCourse ? 'Update' : 'Create'}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
 		</Section>
 	)
 }
@@ -453,12 +1018,10 @@ const Portal = () => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [enrollments, setEnrollments] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [selectedEnrollment, setSelectedEnrollment] = useState(null);
+	const [showProgressModal, setShowProgressModal] = useState(false);
 
-	useEffect(() => {
-		checkAuth();
-	}, []);
-
-	const checkAuth = () => {
+	const checkAuth = useCallback(() => {
 		const token = localStorage.getItem('token');
 		const userData = localStorage.getItem('user');
 		
@@ -471,7 +1034,11 @@ const Portal = () => {
 			setIsAuthenticated(false);
 			setLoading(false);
 		}
-	};
+	}, []);
+
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
 
 	const fetchEnrollments = async () => {
 		try {
@@ -502,6 +1069,61 @@ const Portal = () => {
 
 	// Set global reference
 	refreshEnrollments = fetchEnrollments;
+
+	const fetchDetailedProgress = async (enrollmentId) => {
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/enrollments/${enrollmentId}/progress`, {
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				}
+			});
+			
+			if (response.ok) {
+				const data = await response.json();
+				setSelectedEnrollment(data);
+				setShowProgressModal(true);
+			} else {
+				console.error('Failed to fetch detailed progress:', response.status);
+			}
+		} catch (error) {
+			console.error('Error fetching detailed progress:', error);
+		}
+	};
+
+	const markLessonComplete = async (enrollmentId, lessonId) => {
+		try {
+			const token = localStorage.getItem('token');
+			const response = await fetch(`${getApiBaseUrl()}/api/enrollments/${enrollmentId}/lessons/${lessonId}/complete`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				}
+			});
+			
+			if (response.ok) {
+				const data = await response.json();
+				// Update the enrollment in the list
+				setEnrollments(prev => prev.map(enrollment => 
+					enrollment._id === enrollmentId 
+						? { ...enrollment, progress: data.progress, completed: data.completed }
+						: enrollment
+				));
+				// Refresh detailed progress if modal is open
+				if (showProgressModal && selectedEnrollment && selectedEnrollment.enrollment._id === enrollmentId) {
+					fetchDetailedProgress(enrollmentId);
+				}
+				alert('Lesson marked as completed!');
+			} else {
+				alert('Failed to mark lesson as completed');
+			}
+		} catch (error) {
+			console.error('Error marking lesson as completed:', error);
+			alert('Error marking lesson as completed');
+		}
+	};
 
 	if (!isAuthenticated) {
 		return (
@@ -559,29 +1181,56 @@ const Portal = () => {
 							<p>Loading your courses...</p>
 						</div>
 					) : enrollments.length > 0 ? (
-						<div className="space-y-3">
+						<div className="space-y-4">
 							{enrollments.map((enrollment) => (
-								<div key={enrollment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-jungle-50 transition-colors">
-									<div className="flex-1">
-										<span className="font-medium text-lg">{enrollment.course?.title || 'Course Title'}</span>
-										<div className="text-sm text-gray-500 mt-1">
-											Enrolled: {new Date(enrollment.enrolledAt || enrollment.startedAt).toLocaleDateString()}
-										</div>
-										{enrollment.course?.description && (
-											<div className="text-sm text-gray-600 mt-1">
-												{enrollment.course.description.substring(0, 100)}...
+								<div key={enrollment._id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+									<div className="flex items-start justify-between">
+										<div className="flex-1">
+											<div className="flex items-center gap-3 mb-2">
+												<span className="font-semibold text-lg text-gray-900">{enrollment.course?.title || 'Course Title'}</span>
+												{enrollment.completed && (
+													<span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+														Completed
+													</span>
+												)}
 											</div>
-										)}
-									</div>
-									<div className="flex items-center gap-3">
-										<ProgressBar value={enrollment.progress || 0} />
-										<span className="text-sm text-gray-600 font-medium">{enrollment.progress || 0}%</span>
-										<a 
-											href={`/courses/${enrollment.course?.slug}`}
-											className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors"
-										>
-											Continue
-										</a>
+											<div className="text-sm text-gray-500 mb-2">
+												Enrolled: {new Date(enrollment.enrolledAt || enrollment.startedAt).toLocaleDateString()}
+												{enrollment.completedAt && (
+													<span className="ml-4">
+														Completed: {new Date(enrollment.completedAt).toLocaleDateString()}
+													</span>
+												)}
+											</div>
+											{enrollment.course?.description && (
+												<div className="text-sm text-gray-600 mb-3">
+													{enrollment.course.description.substring(0, 150)}...
+												</div>
+											)}
+											<div className="flex items-center gap-4">
+												<div className="flex-1">
+													<div className="flex items-center gap-2 mb-1">
+														<span className="text-sm font-medium text-gray-700">Progress:</span>
+														<span className="text-sm text-gray-600 font-medium">{enrollment.progress || 0}%</span>
+													</div>
+													<ProgressBar value={enrollment.progress || 0} />
+												</div>
+											</div>
+										</div>
+										<div className="flex flex-col gap-2 ml-4">
+											<button
+												onClick={() => fetchDetailedProgress(enrollment._id)}
+												className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+											>
+												View Progress
+											</button>
+											<a 
+												href={`/courses/${enrollment.course?.slug}`}
+												className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors text-center"
+											>
+												Continue Learning
+											</a>
+										</div>
 									</div>
 								</div>
 							))}
@@ -594,36 +1243,93 @@ const Portal = () => {
 					)}
 				</div>
 			</div>
-		</Section>
-	)
-}
 
-function CoursesTable() {
-	return (
-		<div className="overflow-x-auto">
-			<table className="min-w-full text-sm">
-				<thead>
-					<tr className="text-left text-gray-800">
-						<th className="p-2 font-semibold">Title</th>
-						<th className="p-2 font-semibold">Price</th>
-						<th className="p-2 font-semibold">Status</th>
-						<th className="p-2 font-semibold">Actions</th>
-					</tr>
-				</thead>
-				<tbody>
-					{placeholderCourses.map(c => (
-						<tr key={c.id} className="border-t">
-							<td className="p-2 text-black">{c.title}</td>
-							<td className="p-2 text-black">{c.price}</td>
-							<td className="p-2 text-black">Published</td>
-							<td className="p-2">
-								<button className="inline-flex items-center gap-2 rounded-md px-3 py-2 font-medium border border-jungle text-jungle hover:bg-jungle-50">Edit</button>
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
+			{/* Progress Detail Modal */}
+			{showProgressModal && selectedEnrollment && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="text-xl font-semibold">
+								Progress Details: {selectedEnrollment.course?.title}
+							</h3>
+							<button
+								onClick={() => setShowProgressModal(false)}
+								className="text-gray-500 hover:text-gray-700"
+							>
+								✕
+							</button>
+						</div>
+						
+						<div className="mb-6">
+							<div className="flex items-center justify-between mb-2">
+								<span className="text-lg font-medium">Overall Progress</span>
+								<span className="text-lg font-semibold text-jungle-600">
+									{selectedEnrollment.enrollment.progress}%
+								</span>
+							</div>
+							<ProgressBar value={selectedEnrollment.enrollment.progress} />
+							<div className="flex justify-between text-sm text-gray-600 mt-2">
+								<span>{selectedEnrollment.enrollment.completedLessons} of {selectedEnrollment.enrollment.totalLessons} lessons completed</span>
+								{selectedEnrollment.enrollment.completed && (
+									<span className="text-green-600 font-medium">Course Completed!</span>
+								)}
+							</div>
+						</div>
+
+						{selectedEnrollment.course?.lessons && selectedEnrollment.course.lessons.length > 0 && (
+							<div>
+								<h4 className="text-lg font-medium mb-4">Lessons</h4>
+								<div className="space-y-3">
+									{selectedEnrollment.course.lessons.map((lesson, index) => {
+										const isCompleted = selectedEnrollment.enrollment.completedLessons?.includes(lesson._id || index.toString());
+										return (
+											<div key={lesson._id || index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+												<div className="flex items-center gap-3">
+													<div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
+														isCompleted 
+															? 'bg-green-500 text-white' 
+															: 'bg-gray-200 text-gray-600'
+													}`}>
+														{isCompleted ? '✓' : index + 1}
+													</div>
+													<div>
+														<div className="font-medium">{lesson.title}</div>
+														{lesson.duration && (
+															<div className="text-sm text-gray-500">{lesson.duration}</div>
+														)}
+													</div>
+												</div>
+												<div className="flex items-center gap-2">
+													{isCompleted ? (
+														<span className="text-green-600 font-medium text-sm">Completed</span>
+													) : (
+														<button
+															onClick={() => markLessonComplete(selectedEnrollment.enrollment._id, lesson._id || index.toString())}
+															className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors"
+														>
+															Mark Complete
+														</button>
+													)}
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						)}
+
+						<div className="flex justify-end mt-6">
+							<button
+								onClick={() => setShowProgressModal(false)}
+								className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+							>
+								Close
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+		</Section>
 	)
 }
 
@@ -802,17 +1508,71 @@ const CourseDetail = ({ courseSlug }) => {
 	const [paymentStatus, setPaymentStatus] = useState(null);
 	const [paymentReference, setPaymentReference] = useState(null);
 
-	useEffect(() => {
-		loadCourse();
-		checkAuthStatus();
-	}, [courseSlug, isAuthenticated]);
-
 	const checkAuthStatus = () => {
 		const token = localStorage.getItem('token');
 		const userData = localStorage.getItem('user');
 		const isAuth = !!(token && userData);
 		setIsAuthenticated(isAuth);
 	};
+
+	const loadCourse = useCallback(async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			
+			const data = await apiGet(`/api/courses/${courseSlug}`);
+			setCourse(data);
+			
+			// Check enrollment status
+			if (data.isFree) {
+				// Free courses are always accessible
+				setIsEnrolled(true);
+			} else if (isAuthenticated) {
+				// For paid courses, check if user is enrolled
+				try {
+					const token = localStorage.getItem('token');
+					const response = await fetch(`${getApiBaseUrl()}/api/enrollments/me`, {
+						headers: {
+							'Authorization': `Bearer ${token}`,
+							'Content-Type': 'application/json'
+						}
+					});
+					
+					if (response.ok) {
+						const enrollments = await response.json();
+						const isEnrolledInCourse = enrollments.some(enrollment => 
+							enrollment.course && enrollment.course._id === data._id
+						);
+						setIsEnrolled(isEnrolledInCourse);
+					} else {
+						setIsEnrolled(false);
+					}
+				} catch (error) {
+					console.error('Error checking enrollment:', error);
+					setIsEnrolled(false);
+				}
+			} else {
+				// Not authenticated and not free course
+				setIsEnrolled(false);
+			}
+		} catch (error) {
+			console.error('Error fetching course from API:', error);
+			setError(error.message);
+			// Fallback to placeholder data
+			const fallbackCourse = placeholderCourses.find(c => c.slug === courseSlug);
+			setCourse(fallbackCourse);
+			if (fallbackCourse && fallbackCourse.isFree) {
+				setIsEnrolled(true);
+			}
+		} finally {
+			setLoading(false);
+		}
+	}, [courseSlug, isAuthenticated]);
+
+	useEffect(() => {
+		loadCourse();
+		checkAuthStatus();
+	}, [courseSlug, isAuthenticated, loadCourse]);
 
 	const openLesson = (lesson) => {
 		if (lesson.contentHtml) {
@@ -966,6 +1726,14 @@ const CourseDetail = ({ courseSlug }) => {
 			} else {
 				const errorData = await response.json();
 				console.error('Paystack M-Pesa payment error response:', errorData);
+				
+				// Handle specific duplicate payment scenarios
+				if (errorData.alreadyEnrolled || errorData.alreadyPaid) {
+					alert(errorData.message + ' Redirecting to your portal...');
+					window.location.href = '/portal';
+					return;
+				}
+				
 				throw new Error(errorData.message || 'Paystack M-Pesa payment initialization failed');
 			}
 		} catch (error) {
@@ -1071,60 +1839,6 @@ const CourseDetail = ({ courseSlug }) => {
 		
 		// Initial check
 		checkPaymentStatus();
-	};
-
-	const loadCourse = async () => {
-		try {
-			setLoading(true);
-			setError(null);
-			
-			const data = await apiGet(`/api/courses/${courseSlug}`);
-			setCourse(data);
-			
-			// Check enrollment status
-			if (data.isFree) {
-				// Free courses are always accessible
-				setIsEnrolled(true);
-			} else if (isAuthenticated) {
-				// For paid courses, check if user is enrolled
-				try {
-					const token = localStorage.getItem('token');
-					const response = await fetch(`${getApiBaseUrl()}/api/enrollments/me`, {
-						headers: {
-							'Authorization': `Bearer ${token}`,
-							'Content-Type': 'application/json'
-						}
-					});
-					
-					if (response.ok) {
-						const enrollments = await response.json();
-						const isEnrolledInCourse = enrollments.some(enrollment => 
-							enrollment.course && enrollment.course._id === data._id
-						);
-						setIsEnrolled(isEnrolledInCourse);
-					} else {
-						setIsEnrolled(false);
-					}
-				} catch (error) {
-					console.error('Error checking enrollment:', error);
-					setIsEnrolled(false);
-				}
-			} else {
-				// Not authenticated and not free course
-				setIsEnrolled(false);
-			}
-		} catch (error) {
-			console.error('Error fetching course from API:', error);
-			setError(error.message);
-			// Fallback to placeholder data
-			const fallbackCourse = placeholderCourses.find(c => c.slug === courseSlug);
-			setCourse(fallbackCourse);
-			if (fallbackCourse && fallbackCourse.isFree) {
-				setIsEnrolled(true);
-			}
-		} finally {
-			setLoading(false);
-		}
 	};
 	
 	if (loading) {
