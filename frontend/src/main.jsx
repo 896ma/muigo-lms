@@ -288,8 +288,10 @@ const Admin = () => {
 	const [user, setUser] = useState(null);
 	const [showUserModal, setShowUserModal] = useState(false);
 	const [showCourseModal, setShowCourseModal] = useState(false);
+	const [showCourseViewModal, setShowCourseViewModal] = useState(false);
 	const [editingUser, setEditingUser] = useState(null);
 	const [editingCourse, setEditingCourse] = useState(null);
+	const [viewingCourse, setViewingCourse] = useState(null);
 	const [userForm, setUserForm] = useState({
 		name: '',
 		email: '',
@@ -619,6 +621,11 @@ const Admin = () => {
 		setShowCourseModal(true);
 	};
 
+	const viewCourse = (course) => {
+		setViewingCourse(course);
+		setShowCourseViewModal(true);
+	};
+
 	const UsersTable = () => (
 		<div>
 			<div className="flex justify-between items-center mb-4">
@@ -730,6 +737,12 @@ const Admin = () => {
 								<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
 									<div className="flex space-x-2">
 										<button
+											onClick={() => viewCourse(course)}
+											className="text-blue-600 hover:text-blue-900"
+										>
+											View
+										</button>
+										<button
 											onClick={() => openCourseModal(course)}
 											className="text-jungle-600 hover:text-jungle-900"
 										>
@@ -762,9 +775,6 @@ const Admin = () => {
 					<div className="space-x-4">
 						<a href="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
 							Login
-						</a>
-						<a href="/register" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-jungle-500 text-jungle-500 hover:bg-jungle-50">
-							Register
 						</a>
 					</div>
 				</div>
@@ -1000,6 +1010,101 @@ const Admin = () => {
 								</button>
 							</div>
 						</form>
+					</div>
+				</div>
+			)}
+
+			{/* Course View Modal */}
+			{showCourseViewModal && viewingCourse && (
+				<div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+					<div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="text-lg font-semibold">Course Details</h3>
+							<button
+								onClick={() => setShowCourseViewModal(false)}
+								className="text-gray-400 hover:text-gray-600"
+							>
+								<span className="sr-only">Close</span>
+								<svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+						<div className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<h4 className="font-semibold text-gray-700">Title</h4>
+									<p className="text-gray-900">{viewingCourse.title}</p>
+								</div>
+								<div>
+									<h4 className="font-semibold text-gray-700">Category</h4>
+									<p className="text-gray-900">{viewingCourse.category || 'N/A'}</p>
+								</div>
+							</div>
+							<div>
+								<h4 className="font-semibold text-gray-700">Description</h4>
+								<p className="text-gray-900">{viewingCourse.description || 'No description available'}</p>
+							</div>
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<div>
+									<h4 className="font-semibold text-gray-700">Price</h4>
+									<p className="text-gray-900">
+										{viewingCourse.isFree ? 'Free' : `${viewingCourse.currency} ${viewingCourse.price}`}
+									</p>
+								</div>
+								<div>
+									<h4 className="font-semibold text-gray-700">Status</h4>
+									<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+										viewingCourse.isFree ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+									}`}>
+										{viewingCourse.isFree ? 'Free' : 'Paid'}
+									</span>
+								</div>
+								<div>
+									<h4 className="font-semibold text-gray-700">Created</h4>
+									<p className="text-gray-900">{new Date(viewingCourse.createdAt).toLocaleDateString()}</p>
+								</div>
+							</div>
+							{viewingCourse.coverImage && (
+								<div>
+									<h4 className="font-semibold text-gray-700">Cover Image</h4>
+									<img
+										src={viewingCourse.coverImage}
+										alt={viewingCourse.title}
+										className="mt-2 w-full h-48 object-cover rounded-lg border"
+										onError={(e) => {
+											e.target.style.display = 'none';
+										}}
+									/>
+								</div>
+							)}
+							{viewingCourse.lessons && viewingCourse.lessons.length > 0 && (
+								<div>
+									<h4 className="font-semibold text-gray-700">Lessons ({viewingCourse.lessons.length})</h4>
+									<div className="mt-2 space-y-2">
+										{viewingCourse.lessons.map((lesson, index) => (
+											<div key={index} className="p-3 bg-gray-50 rounded-lg">
+												<h5 className="font-medium text-gray-900">{lesson.title}</h5>
+												{lesson.description && (
+													<p className="text-sm text-gray-600 mt-1">{lesson.description}</p>
+												)}
+												{lesson.videoUrl && (
+													<p className="text-xs text-blue-600 mt-1">Video: {lesson.videoUrl}</p>
+												)}
+											</div>
+										))}
+									</div>
+								</div>
+							)}
+						</div>
+						<div className="flex justify-end mt-6">
+							<button
+								onClick={() => setShowCourseViewModal(false)}
+								className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+							>
+								Close
+							</button>
+						</div>
 					</div>
 				</div>
 			)}
@@ -1269,7 +1374,7 @@ const Portal = () => {
 							</div>
 							<ProgressBar value={selectedEnrollment.enrollment.progress} />
 							<div className="flex justify-between text-sm text-gray-600 mt-2">
-								<span>{selectedEnrollment.enrollment.completedLessons} of {selectedEnrollment.enrollment.totalLessons} lessons completed</span>
+								<span>{Array.isArray(selectedEnrollment.enrollment.completedLessons) ? selectedEnrollment.enrollment.completedLessons.length : 0} of {selectedEnrollment.course?.lessons?.length || 0} lessons completed</span>
 								{selectedEnrollment.enrollment.completed && (
 									<span className="text-green-600 font-medium">Course Completed!</span>
 								)}
@@ -1281,7 +1386,10 @@ const Portal = () => {
 								<h4 className="text-lg font-medium mb-4">Lessons</h4>
 								<div className="space-y-3">
 									{selectedEnrollment.course.lessons.map((lesson, index) => {
-										const isCompleted = selectedEnrollment.enrollment.completedLessons?.includes(lesson._id || index.toString());
+										const completedLessons = Array.isArray(selectedEnrollment.enrollment.completedLessons) 
+											? selectedEnrollment.enrollment.completedLessons 
+											: [];
+										const isCompleted = completedLessons.includes(lesson._id || index.toString());
 										return (
 											<div key={lesson._id || index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
 												<div className="flex items-center gap-3">

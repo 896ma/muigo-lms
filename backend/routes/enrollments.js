@@ -151,7 +151,7 @@ router.get('/:id/progress', requireAuth, async (req, res) => {
 				_id: enrollment._id,
 				progress,
 				completed: enrollment.completed,
-				completedLessons,
+				completedLessons: enrollment.completedLessons || [],
 				totalLessons,
 				enrolledAt: enrollment.enrolledAt,
 				completedAt: enrollment.completedAt
