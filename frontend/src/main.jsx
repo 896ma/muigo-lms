@@ -7,7 +7,7 @@ import { apiGet } from './lib/api.js'
 
 // Helper function to get API base URL
 const getApiBaseUrl = () => {
-	return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000');
+	return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com');
 };
 
 const Section = ({ title, children }) => (

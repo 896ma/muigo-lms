@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiGet, apiPost } from '../lib/api.js';
 import { isAuthed } from '../lib/auth.js';
@@ -17,19 +17,29 @@ const CourseDetail = () => {
     useEffect(() => {
         loadCourse();
         checkAuthStatus();
-    }, [slug]);
+        
+        // Check if user just completed payment (has enrolled=true in URL)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('enrolled') === 'true') {
+            console.log('User just completed payment, forcing enrollment refresh');
+            // Wait a bit for backend to process enrollment, then check status
+            setTimeout(() => {
+                checkEnrollmentStatus();
+            }, 2000);
+        }
+    }, [loadCourse, checkEnrollmentStatus]);
 
     // Refresh enrollment status when component mounts (useful after payment)
     useEffect(() => {
         if (course && isAuthenticated && !course.isFree) {
             checkEnrollmentStatus();
         }
-    }, [course, isAuthenticated]);
+    }, [course, isAuthenticated, checkEnrollmentStatus]);
 
-    const checkEnrollmentStatus = async () => {
+    const checkEnrollmentStatus = useCallback(async (retryCount = 0) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/enrollments/me`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com')}/api/enrollments/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -42,11 +52,23 @@ const CourseDetail = () => {
                     enrollment.course && enrollment.course._id === course._id
                 );
                 setIsEnrolled(isEnrolledInCourse);
+                console.log('Enrollment status check:', { isEnrolledInCourse, courseId: course._id, enrollments: enrollments.length, retryCount });
+                
+                // If not enrolled and we just came from payment, retry once more after a delay
+                if (!isEnrolledInCourse && retryCount === 0) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('enrolled') === 'true') {
+                        console.log('Retrying enrollment check after payment...');
+                        setTimeout(() => {
+                            checkEnrollmentStatus(1);
+                        }, 3000);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error checking enrollment status:', error);
         }
-    };
+    }, [course]);
 
     const checkAuthStatus = () => {
         setIsAuthenticated(isAuthed());
@@ -93,7 +115,7 @@ const CourseDetail = () => {
         }
     };
 
-    const loadCourse = async () => {
+    const loadCourse = useCallback(async () => {
         try {
             setLoading(true);
             const data = await apiGet(`/api/courses/${slug}`);
@@ -107,7 +129,7 @@ const CourseDetail = () => {
                 // For paid courses, check if user is enrolled
                 try {
                     const token = localStorage.getItem('token');
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/enrollments/me`, {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'http://localhost:5175/payment-callback')}/api/enrollments/me`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -145,7 +167,7 @@ const CourseDetail = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [slug, isAuthenticated, isEnrolled]);
 
     const handleEnroll = async () => {
         // For testing purposes, allow enrollment without authentication

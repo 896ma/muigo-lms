@@ -7,10 +7,16 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://muigo-farmers-lms.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       }
+    }
+  },
+  build: {
+    // Disable proxy in production builds
+    rollupOptions: {
+      external: []
     }
   }
 })
