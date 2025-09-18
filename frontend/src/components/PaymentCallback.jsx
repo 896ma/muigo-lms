@@ -6,6 +6,7 @@ const PaymentCallback = () => {
 	const navigate = useNavigate();
 	const [status, setStatus] = useState('verifying');
 	const [message, setMessage] = useState('Verifying your payment...');
+	const [courseInfo, setCourseInfo] = useState(null);
 
 	useEffect(() => {
 		const verifyPayment = async () => {
@@ -22,11 +23,9 @@ const PaymentCallback = () => {
 				const paymentRef = reference || trxref;
 				console.log('Verifying payment with reference:', paymentRef);
 
+				// No authentication required for payment verification
 				const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000')}/api/payments/verify/${paymentRef}`, {
-					method: 'GET',
-					headers: {
-						'Authorization': `Bearer ${localStorage.getItem('token')}`
-					}
+					method: 'GET'
 				});
 
 				const data = await response.json();
@@ -35,10 +34,20 @@ const PaymentCallback = () => {
 				if (response.ok && data.success) {
 					setStatus('success');
 					setMessage(data.message || 'Payment successful! You are now enrolled in the course.');
+					setCourseInfo(data.course);
 					
-					// Redirect to portal after 3 seconds
+					// Store user info if available
+					if (data.user) {
+						localStorage.setItem('user', JSON.stringify(data.user));
+					}
+					
+					// Redirect to specific course or portal after 3 seconds
 					setTimeout(() => {
-						navigate('/portal');
+						if (data.course && data.course.slug) {
+							navigate(`/courses/${data.course.slug}`);
+						} else {
+							navigate('/portal');
+						}
 					}, 3000);
 				} else {
 					setStatus('error');
@@ -74,7 +83,29 @@ const PaymentCallback = () => {
 						</div>
 						<h2 className="text-xl font-semibold text-green-800 mb-2">Payment Successful!</h2>
 						<p className="text-gray-600 mb-4">{message}</p>
-						<p className="text-sm text-gray-500">Redirecting to your portal...</p>
+						{courseInfo && (
+							<div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+								<p className="text-sm text-green-800 font-medium">Course: {courseInfo.title}</p>
+								<p className="text-xs text-green-600">You now have access to this course!</p>
+							</div>
+						)}
+						<p className="text-sm text-gray-500 mb-4">
+							{courseInfo ? 'Redirecting to your course...' : 'Redirecting to your portal...'}
+						</p>
+						{courseInfo && (
+							<button
+								onClick={() => navigate(`/courses/${courseInfo.slug}`)}
+								className="bg-jungle-500 text-white px-4 py-2 rounded-lg hover:bg-jungle-600 mr-2"
+							>
+								Go to Course
+							</button>
+						)}
+						<button
+							onClick={() => navigate('/portal')}
+							className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+						>
+							Go to Portal
+						</button>
 					</>
 				)}
 

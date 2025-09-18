@@ -106,8 +106,8 @@ router.post('/webhook', express.json({ type: '*/*' }), async (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// 3) Verify via reference - GET endpoint for redirects
-router.get('/verify/:reference', requireAuth, async (req, res) => {
+// 3) Verify via reference - GET endpoint for redirects (no auth required for callback)
+router.get('/verify/:reference', async (req, res) => {
   const ref = req.params.reference;
   
   try {
@@ -119,7 +119,10 @@ router.get('/verify/:reference', requireAuth, async (req, res) => {
     
     if(data.status === 'success') {
       // Mark payment/enroll if not already done
-      const payment = await Payment.findOne({ reference: ref });
+      const payment = await Payment.findOne({ reference: ref })
+        .populate('course', 'title slug _id')
+        .populate('user', 'name email _id');
+        
       if(payment && payment.status !== 'success') {
          payment.status = 'success';
          await payment.save();
@@ -134,7 +137,14 @@ router.get('/verify/:reference', requireAuth, async (req, res) => {
            await Enrollment.create({ user: payment.user, course: payment.course });
          }
       }
-      return res.json({ success: true, message: 'Payment verified and enrollment completed' });
+      
+      // Return course and user information for redirect
+      return res.json({ 
+        success: true, 
+        message: 'Payment verified and enrollment completed',
+        course: payment.course,
+        user: payment.user
+      });
     } else {
       res.status(400).json({ success: false, message: 'Payment not successful' });
     }

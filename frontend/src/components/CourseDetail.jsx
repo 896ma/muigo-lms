@@ -19,6 +19,35 @@ const CourseDetail = () => {
         checkAuthStatus();
     }, [slug]);
 
+    // Refresh enrollment status when component mounts (useful after payment)
+    useEffect(() => {
+        if (course && isAuthenticated && !course.isFree) {
+            checkEnrollmentStatus();
+        }
+    }, [course, isAuthenticated]);
+
+    const checkEnrollmentStatus = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/enrollments/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const enrollments = await response.json();
+                const isEnrolledInCourse = enrollments.some(enrollment => 
+                    enrollment.course && enrollment.course._id === course._id
+                );
+                setIsEnrolled(isEnrolledInCourse);
+            }
+        } catch (error) {
+            console.error('Error checking enrollment status:', error);
+        }
+    };
+
     const checkAuthStatus = () => {
         setIsAuthenticated(isAuthed());
     };
@@ -70,17 +99,46 @@ const CourseDetail = () => {
             const data = await apiGet(`/api/courses/${slug}`);
             setCourse(data);
             
-            // Check if user can access content (enrolled or free)
-            const canAccess = data.isFree || data.lessons?.some(l => l.contentHtml);
-            setIsEnrolled(canAccess);
+            // Check enrollment status properly
+            if (data.isFree) {
+                // Free courses are always accessible
+                setIsEnrolled(true);
+            } else if (isAuthenticated) {
+                // For paid courses, check if user is enrolled
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/enrollments/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const enrollments = await response.json();
+                        const isEnrolledInCourse = enrollments.some(enrollment => 
+                            enrollment.course && enrollment.course._id === data._id
+                        );
+                        setIsEnrolled(isEnrolledInCourse);
+                    } else {
+                        setIsEnrolled(false);
+                    }
+                } catch (error) {
+                    console.error('Error checking enrollment:', error);
+                    setIsEnrolled(false);
+                }
+            } else {
+                // Not authenticated and not free course
+                setIsEnrolled(false);
+            }
             
             // Debug logging
             console.log('Course loaded:', {
                 title: data.title,
                 isFree: data.isFree,
                 price: data.price,
-                canAccess,
-                isEnrolled: canAccess
+                isEnrolled,
+                isAuthenticated
             });
         } catch (err) {
             setError(err.message);
