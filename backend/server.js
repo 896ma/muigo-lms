@@ -37,6 +37,7 @@ const corsOptions = {
       'http://localhost:5176',
       'https://muigo-farmers-lms.onrender.com',
       'https://muigo-farmers-lms.vercel.app',
+      'https://muigo-farmers-c2obpa4yi-896mas-projects.vercel.app',
       'http://localhost:3000',
       'https://*.vercel.app',
       process.env.FRONTEND_URL
@@ -47,7 +48,9 @@ const corsOptions = {
     // Check if origin matches any allowed pattern
     const isAllowed = allowedOrigins.some(allowedOrigin => {
       if (allowedOrigin.includes('*')) {
-        const matches = origin.includes(allowedOrigin.replace('*', ''));
+        // Handle wildcard patterns like https://*.vercel.app
+        const pattern = allowedOrigin.replace('*', '');
+        const matches = origin.startsWith(pattern);
         console.log(`Checking wildcard ${allowedOrigin} against ${origin}: ${matches}`);
         return matches;
       }
