@@ -129,7 +129,7 @@ const CourseDetail = () => {
                 // For paid courses, check if user is enrolled
                 try {
                     const token = localStorage.getItem('token');
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com/payment-callback')}/api/enrollments/me`, {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com')}/api/enrollments/me`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
