@@ -28,6 +28,8 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:5176',
       'https://muigo-farmers-lms.onrender.com',
       'http://localhost:3000',
       'https://*.vercel.app',
@@ -54,7 +56,7 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
