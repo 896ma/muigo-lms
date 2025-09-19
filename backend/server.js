@@ -21,8 +21,13 @@ app.use(cookieParser());
 // CORS configuration for production
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('CORS check for origin:', origin);
+    
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('CORS allowing request with no origin');
+      return callback(null, true);
+    }
     
     // Allow Vercel domains and localhost for development
     const allowedOrigins = [
@@ -37,19 +42,25 @@ const corsOptions = {
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
+    console.log('Allowed origins:', allowedOrigins);
+    
     // Check if origin matches any allowed pattern
     const isAllowed = allowedOrigins.some(allowedOrigin => {
       if (allowedOrigin.includes('*')) {
-        return origin.includes(allowedOrigin.replace('*', ''));
+        const matches = origin.includes(allowedOrigin.replace('*', ''));
+        console.log(`Checking wildcard ${allowedOrigin} against ${origin}: ${matches}`);
+        return matches;
       }
-      return origin === allowedOrigin;
+      const matches = origin === allowedOrigin;
+      console.log(`Checking exact ${allowedOrigin} against ${origin}: ${matches}`);
+      return matches;
     }) || origin.startsWith('http://localhost:'); // Allow any localhost port for development
     
     if (isAllowed) {
-      console.log('CORS allowing origin:', origin);
+      console.log('✅ CORS allowing origin:', origin);
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
+      console.log('❌ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
