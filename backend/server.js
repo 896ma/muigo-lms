@@ -31,6 +31,7 @@ const corsOptions = {
       'http://localhost:5175',
       'http://localhost:5176',
       'https://muigo-farmers-lms.onrender.com',
+      'https://muigo-farmers-lms.vercel.app',
       'http://localhost:3000',
       'https://*.vercel.app',
       process.env.FRONTEND_URL
@@ -45,13 +46,13 @@ const corsOptions = {
     }) || origin.startsWith('http://localhost:'); // Allow any localhost port for development
     
     if (isAllowed) {
+      console.log('CORS allowing origin:', origin);
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };

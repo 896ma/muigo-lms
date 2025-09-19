@@ -8,7 +8,6 @@ export async function apiGet(path, options = {}) {
 	try {
 		console.log(`Making API request to: ${API_BASE_URL}${path}`);
 		const res = await fetch(`${API_BASE_URL}${path}`, {
-			credentials: 'include',
 			headers: { 
 				'Content-Type': 'application/json', 
 				Authorization: `Bearer ${getToken()}` 
@@ -42,7 +41,6 @@ export async function apiPost(path, body, options = {}) {
 		console.log(`Making API POST request to: ${API_BASE_URL}${path}`);
 		const res = await fetch(`${API_BASE_URL}${path}`, {
 			method: 'POST',
-			credentials: 'include',
 			headers: { 
 				'Content-Type': 'application/json', 
 				Authorization: `Bearer ${getToken()}` 
