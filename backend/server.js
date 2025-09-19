@@ -54,7 +54,7 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
