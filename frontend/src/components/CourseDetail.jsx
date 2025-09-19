@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiGet, apiPost } from '../lib/api.js';
 import { isAuthed } from '../lib/auth.js';
@@ -13,6 +13,12 @@ const CourseDetail = () => {
     const [email, setEmail] = useState('');
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const isEnrolledRef = useRef(false);
+
+    // Update ref when state changes
+    useEffect(() => {
+        isEnrolledRef.current = isEnrolled;
+    }, [isEnrolled]);
 
     useEffect(() => {
         loadCourse();
@@ -27,14 +33,14 @@ const CourseDetail = () => {
                 checkEnrollmentStatus();
             }, 2000);
         }
-    }, [loadCourse, checkEnrollmentStatus]);
+    }, [slug]);
 
     // Refresh enrollment status when component mounts (useful after payment)
     useEffect(() => {
         if (course && isAuthenticated && !course.isFree) {
             checkEnrollmentStatus();
         }
-    }, [course, isAuthenticated, checkEnrollmentStatus]);
+    }, [course, isAuthenticated]);
 
     const checkEnrollmentStatus = useCallback(async (retryCount = 0) => {
         try {
@@ -167,7 +173,7 @@ const CourseDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [slug, isAuthenticated, isEnrolled]);
+    }, [slug, isAuthenticated]);
 
     const handleEnroll = async () => {
         // For testing purposes, allow enrollment without authentication
