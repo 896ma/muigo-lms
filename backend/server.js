@@ -28,7 +28,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:5174',
-      'http://localhost:5175',
+      'https://muigo-farmers-lms.onrender.com',
       'http://localhost:3000',
       'https://*.vercel.app',
       process.env.FRONTEND_URL

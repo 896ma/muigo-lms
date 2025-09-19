@@ -24,7 +24,7 @@ const PaymentCallback = () => {
 				console.log('Verifying payment with reference:', paymentRef);
 
 				// No authentication required for payment verification
-				const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'http://localhost:5175/payment-callback');
+				const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com/payment-callback');
 				console.log('Using API URL for payment verification:', apiUrl);
 				
 				const response = await fetch(`${apiUrl}/api/payments/verify/${paymentRef}`, {

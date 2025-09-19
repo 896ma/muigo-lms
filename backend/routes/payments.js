@@ -52,7 +52,7 @@ router.post('/initiate', requireAuth, async (req, res) => {
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);
 
-  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'http://localhost:5175/payment-callback';
+  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'https://muigo-farmers-lms.onrender.com/payment-callback';
   console.log('Using callback URL:', callbackUrl);
 
   const payload = {
@@ -252,7 +252,7 @@ router.post('/initiate-mpesa', requireAuth, async (req, res) => {
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);
 
-  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'http://localhost:5175/payment-callback';
+  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'https://muigo-farmers-lms.onrender.com/payment-callback';
   console.log('Using M-Pesa callback URL:', callbackUrl);
 
   const payload = {
