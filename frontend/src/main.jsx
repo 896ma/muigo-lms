@@ -70,6 +70,7 @@ const Login = () => {
 		setMessage('');
 
 		try {
+			console.log('Attempting login with:', formData.email);
 			const response = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
 				method: 'POST',
 				headers: {
@@ -78,7 +79,9 @@ const Login = () => {
 				body: JSON.stringify(formData)
 			});
 
+			console.log('Login response status:', response.status);
 			const data = await response.json();
+			console.log('Login response data:', data);
 
 			if (response.ok) {
 				setMessage('Login successful!');
@@ -94,7 +97,8 @@ const Login = () => {
 			} else {
 				setError(data.message || 'Login failed');
 			}
-		} catch {
+		} catch (error) {
+			console.error('Login error:', error);
 			setError('Network error. Please try again.');
 		} finally {
 			setLoading(false);
@@ -337,14 +341,21 @@ const Admin = () => {
 	const fetchStats = async () => {
 		try {
 			const token = localStorage.getItem('token');
+			console.log('Loading admin stats with token:', token ? 'present' : 'missing');
 			const response = await fetch(`${getApiBaseUrl()}/api/admin/stats`, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				}
 			});
-			const data = await response.json();
-			setStats(data);
+			console.log('Admin stats response status:', response.status);
+			if (response.ok) {
+				const data = await response.json();
+				setStats(data);
+			} else {
+				const errorData = await response.json();
+				console.error('Admin stats error:', errorData);
+			}
 		} catch (error) {
 			console.error('Error fetching stats:', error);
 		}
