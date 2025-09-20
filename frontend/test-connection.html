@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Frontend-Backend Connection Test</h1>
+    <div id="results"></div>
+    
+    <button onclick="testHealth()">Test Health Endpoint</button>
+    <button onclick="testCourses()">Test Courses Endpoint</button>
+    <button onclick="testLogin()">Test Login Endpoint</button>
+    <button onclick="testAll()">Test All Endpoints</button>
+    
+    <script>
+        const API_URL = 'https://muigo-farmers-lms.onrender.com';
+        
+        function addResult(message, type = 'loading') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        async function testHealth() {
+            addResult('Testing health endpoint...', 'loading');
+            try {
+                const start = Date.now();
+                const response = await fetch(`${API_URL}/health`);
+                const duration = Date.now() - start;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult(`✅ Health endpoint working! Status: ${response.status}, Duration: ${duration}ms, Data: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    addResult(`❌ Health endpoint failed! Status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Health endpoint error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testCourses() {
+            addResult('Testing courses endpoint...', 'loading');
+            try {
+                const start = Date.now();
+                const response = await fetch(`${API_URL}/api/courses`);
+                const duration = Date.now() - start;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult(`✅ Courses endpoint working! Status: ${response.status}, Duration: ${duration}ms, Courses: ${data.length}`, 'success');
+                } else {
+                    addResult(`❌ Courses endpoint failed! Status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Courses endpoint error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            addResult('Testing login endpoint...', 'loading');
+            try {
+                const start = Date.now();
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@test.com',
+                        password: 'test123'
+                    })
+                });
+                const duration = Date.now() - start;
+                const data = await response.json();
+                
+                if (response.status === 400) {
+                    addResult(`✅ Login endpoint working! Status: ${response.status}, Duration: ${duration}ms, Message: ${data.message}`, 'success');
+                } else {
+                    addResult(`❌ Login endpoint unexpected response! Status: ${response.status}, Data: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Login endpoint error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAll() {
+            addResult('Starting comprehensive test...', 'loading');
+            await testHealth();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testCourses();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testLogin();
+            addResult('Test completed!', 'success');
+        }
+        
+        // Auto-run tests when page loads
+        window.onload = function() {
+            addResult('Page loaded. Click buttons to test endpoints.', 'loading');
+        };
+    </script>
+</body>
+</html>
