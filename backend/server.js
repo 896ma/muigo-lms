@@ -83,6 +83,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Simple test endpoint for debugging
+app.get('/test', (req, res) => {
+  res.json({
+    message: 'Backend is working!',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']
+  });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({ 
