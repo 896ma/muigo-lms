@@ -13,14 +13,20 @@ router.get('/test', (req, res) => {
 
 router.get('/', async (req, res) => {
 	try {
-	// Fetching courses from database
+		console.log('GET /api/courses - Request received');
+		console.log('Request headers:', req.headers);
+		console.log('Request origin:', req.headers.origin);
 		
 		// Check if we have a database connection
+		console.log('Database connection state:', mongoose.connection.readyState);
 		if (mongoose.connection.readyState !== 1) {
+			console.log('Database not connected, returning empty array');
 			return res.json([]);
 		}
 		
+		console.log('Fetching courses from database...');
 		const courses = await Course.find().select('title slug price currency isFree coverImage description');
+		console.log(`Found ${courses.length} courses`);
 		res.json(courses);
 	} catch (error) {
 		console.error('Error fetching courses:', error);

@@ -109,6 +109,13 @@ app.get('/', (req, res) => {
   });
 });
 
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
@@ -160,6 +167,6 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Rejection:', err);
   process.exit(1);
-});
+  });
   
  
