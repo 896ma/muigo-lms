@@ -7,16 +7,21 @@ export async function apiGet(path, options = {}) {
 	
 	try {
 		console.log(`Making API request to: ${API_BASE_URL}${path}`);
-		console.log(`Request headers:`, { 
-			'Content-Type': 'application/json', 
-			Authorization: `Bearer ${getToken()}` 
-		});
+		
+		const token = getToken();
+		const headers = { 
+			'Content-Type': 'application/json'
+		};
+		
+		// Only add Authorization header if we have a valid token
+		if (token && token.trim() !== '') {
+			headers.Authorization = `Bearer ${token}`;
+		}
+		
+		console.log(`Request headers:`, headers);
 		
 		const res = await fetch(`${API_BASE_URL}${path}`, {
-			headers: { 
-				'Content-Type': 'application/json', 
-				Authorization: `Bearer ${getToken()}` 
-			},
+			headers,
 			signal: controller.signal,
 			...options
 		});
@@ -50,18 +55,23 @@ export async function apiPost(path, body, options = {}) {
 	
 	try {
 		console.log(`Making API POST request to: ${API_BASE_URL}${path}`);
-		console.log(`Request headers:`, { 
-			'Content-Type': 'application/json', 
-			Authorization: `Bearer ${getToken()}` 
-		});
+		
+		const token = getToken();
+		const headers = { 
+			'Content-Type': 'application/json'
+		};
+		
+		// Only add Authorization header if we have a valid token
+		if (token && token.trim() !== '') {
+			headers.Authorization = `Bearer ${token}`;
+		}
+		
+		console.log(`Request headers:`, headers);
 		console.log(`Request body:`, body);
 		
 		const res = await fetch(`${API_BASE_URL}${path}`, {
 			method: 'POST',
-			headers: { 
-				'Content-Type': 'application/json', 
-				Authorization: `Bearer ${getToken()}` 
-			},
+			headers,
 			body: JSON.stringify(body ?? {}),
 			signal: controller.signal,
 			...options
