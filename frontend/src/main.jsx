@@ -2256,7 +2256,8 @@ const CourseDetail = ({ courseSlug }) => {
 
 // Wrapper component to get the slug from URL params
 function CourseDetailWrapper() {
-  return <CourseDetail />;
+  const { slug } = useParams();
+  return <CourseDetail courseSlug={slug} />;
 }
 
 const router = createBrowserRouter([

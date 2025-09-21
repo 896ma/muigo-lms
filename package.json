@@ -11,11 +11,12 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start": "npm run build:frontend && npm run start:backend",
     "start:backend": "cd backend && npm start",
     "start:frontend": "cd frontend && npm run build && npm run preview",
     "build": "npm run build:frontend",
     "build:frontend": "cd frontend && npm run build",
+    "build:production": "npm run build:frontend && cd backend && npm start",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "seed": "cd backend && npm run seed",
     "setup": "npm run install:all && npm run seed"

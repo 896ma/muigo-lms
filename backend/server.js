@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const config = require('./config');
 
 const authRoutes = require('./routes/auth');
@@ -23,9 +24,9 @@ const corsOptions = {
   origin: function (origin, callback) {
     console.log('CORS check for origin:', origin);
     
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin for health checks and API endpoints
     if (!origin) {
-      console.log('CORS allowing request with no origin');
+      console.log('CORS allowing request with no origin for health/API check');
       return callback(null, true);
     }
     
@@ -68,7 +69,8 @@ const corsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
 };
 
 app.use(cors(corsOptions));
@@ -93,8 +95,8 @@ app.get('/test', (req, res) => {
   });
 });
 
-// Root endpoint
-app.get('/', (req, res) => {
+// API info endpoint (moved to /api/info)
+app.get('/api/info', (req, res) => {
   res.json({ 
     message: 'Farmers LMS API is running!',
     version: '1.0.0',
@@ -122,6 +124,19 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Catch-all handler: send back React's index.html file for any non-API routes
+app.use((req, res, next) => {
+  // Only serve the React app for non-API routes
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  } else {
+    res.status(404).json({ error: 'API endpoint not found' });
+  }
+});
 
 const PORT = process.env.PORT || config.PORT || 5000;
 

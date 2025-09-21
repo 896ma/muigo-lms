@@ -14,9 +14,11 @@ export default defineConfig({
     }
   },
   build: {
-    // Disable proxy in production builds
+    outDir: 'dist',
+    assetsDir: 'assets',
     rollupOptions: {
       external: []
     }
-  }
+  },
+  base: process.env.NODE_ENV === 'production' ? '/' : '/'
 })
