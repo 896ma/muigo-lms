@@ -22,11 +22,8 @@ app.use(cookieParser());
 // CORS configuration for production
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('CORS check for origin:', origin);
-    
     // Allow requests with no origin for health checks and API endpoints
     if (!origin) {
-      console.log('CORS allowing request with no origin for health/API check');
       return callback(null, true);
     }
     
@@ -44,27 +41,19 @@ const corsOptions = {
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
-    console.log('Allowed origins:', allowedOrigins);
-    
     // Check if origin matches any allowed pattern
     const isAllowed = allowedOrigins.some(allowedOrigin => {
       if (allowedOrigin.includes('*')) {
         // Handle wildcard patterns like https://*.vercel.app
         const pattern = allowedOrigin.replace('*', '');
-        const matches = origin.startsWith(pattern);
-        console.log(`Checking wildcard ${allowedOrigin} against ${origin}: ${matches}`);
-        return matches;
+        return origin.startsWith(pattern);
       }
-      const matches = origin === allowedOrigin;
-      console.log(`Checking exact ${allowedOrigin} against ${origin}: ${matches}`);
-      return matches;
+      return origin === allowedOrigin;
     }) || origin.startsWith('http://localhost:'); // Allow any localhost port for development
     
     if (isAllowed) {
-      console.log('✅ CORS allowing origin:', origin);
       callback(null, true);
     } else {
-      console.log('❌ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -85,15 +74,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Simple test endpoint for debugging
-app.get('/test', (req, res) => {
-  res.json({
-    message: 'Backend is working!',
-    timestamp: new Date().toISOString(),
-    origin: req.headers.origin,
-    userAgent: req.headers['user-agent']
-  });
-});
 
 // API info endpoint (moved to /api/info)
 app.get('/api/info', (req, res) => {
@@ -111,12 +91,13 @@ app.get('/api/info', (req, res) => {
   });
 });
 
-// Add request logging middleware
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
-  next();
-});
+// Request logging middleware (only in development)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // routes
 app.use('/api/auth', authRoutes);
@@ -151,8 +132,10 @@ const mongoUri = process.env.MONGO_URI || config.MONGO_URI || 'mongodb://localho
 const startServer = () => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌐 Health check: http://localhost:${PORT}/health`);
-    console.log(`📚 API Documentation: http://localhost:${PORT}/`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+      console.log(`📚 API Documentation: http://localhost:${PORT}/api/info`);
+    }
   });
 };
 
@@ -164,10 +147,12 @@ mongoose.connect(mongoUri)
   })
   .catch(err => {
     console.error('❌ MongoDB connection failed:', err.message);
-    console.log('⚠️  Starting server without database connection...');
-    console.log('📝 To fix this, please:');
-    console.log('   1. Set up MongoDB Atlas and update MONGO_URI environment variable');
-    console.log('   2. Or use: mongodb://localhost:27017/farmers-lms if MongoDB is running locally');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('⚠️  Starting server without database connection...');
+      console.log('📝 To fix this, please:');
+      console.log('   1. Set up MongoDB Atlas and update MONGO_URI environment variable');
+      console.log('   2. Or use: mongodb://localhost:27017/farmers-lms if MongoDB is running locally');
+    }
     
     // Start server anyway (for Render deployment)
     startServer();

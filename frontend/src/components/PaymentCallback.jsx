@@ -20,21 +20,18 @@ const PaymentCallback = () => {
 					return;
 				}
 
-				const paymentRef = reference || trxref;
-				console.log('Verifying payment with reference:', paymentRef);
+			const paymentRef = reference || trxref;
 
-				// No authentication required for payment verification
-				const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com');
-				console.log('Using API URL for payment verification:', apiUrl);
+			// No authentication required for payment verification
+			const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com');
 				
 				const response = await fetch(`${apiUrl}/api/payments/verify/${paymentRef}`, {
 					method: 'GET'
 				});
 
-				const data = await response.json();
-				console.log('Payment verification response:', data);
+			const data = await response.json();
 
-				if (response.ok && data.success) {
+			if (response.ok && data.success) {
 					setStatus('success');
 					setMessage(data.message || 'Payment successful! You are now enrolled in the course.');
 					setCourseInfo(data.course);
@@ -47,11 +44,9 @@ const PaymentCallback = () => {
 					// Redirect to specific course or portal after 3 seconds
 					setTimeout(() => {
 						if (data.course && data.course.slug) {
-							console.log('Redirecting to course:', data.course.slug);
 							// Force refresh enrollment status by adding a timestamp parameter
 							navigate(`/courses/${data.course.slug}?enrolled=true&t=${Date.now()}`);
 						} else {
-							console.log('No course info, redirecting to portal');
 							navigate('/portal');
 						}
 					}, 3000);

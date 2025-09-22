@@ -27,7 +27,6 @@ const CourseDetail = () => {
         // Check if user just completed payment (has enrolled=true in URL)
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('enrolled') === 'true') {
-            console.log('User just completed payment, forcing enrollment refresh');
             // Wait a bit for backend to process enrollment, then check status
             setTimeout(() => {
                 checkEnrollmentStatus();
@@ -58,13 +57,11 @@ const CourseDetail = () => {
                     enrollment.course && enrollment.course._id === course._id
                 );
                 setIsEnrolled(isEnrolledInCourse);
-                console.log('Enrollment status check:', { isEnrolledInCourse, courseId: course._id, enrollments: enrollments.length, retryCount });
                 
                 // If not enrolled and we just came from payment, retry once more after a delay
                 if (!isEnrolledInCourse && retryCount === 0) {
                     const urlParams = new URLSearchParams(window.location.search);
                     if (urlParams.get('enrolled') === 'true') {
-                        console.log('Retrying enrollment check after payment...');
                         setTimeout(() => {
                             checkEnrollmentStatus(1);
                         }, 3000);
@@ -160,14 +157,7 @@ const CourseDetail = () => {
                 setIsEnrolled(false);
             }
             
-            // Debug logging
-            console.log('Course loaded:', {
-                title: data.title,
-                isFree: data.isFree,
-                price: data.price,
-                isEnrolled,
-                isAuthenticated
-            });
+            // Course loaded successfully
         } catch (err) {
             setError(err.message);
         } finally {
@@ -293,13 +283,9 @@ const CourseDetail = () => {
             } else {
                 // Paid course - initialize Paystack payment
                 try {
-                    console.log('Initializing payment for course:', course._id);
                     const paymentData = await apiPost('/api/payments/initiate', {
                         courseId: course._id
                     });
-                    
-                    console.log('Payment data received:', paymentData);
-                    console.log('Redirecting to:', paymentData.authorization_url);
                     
                     // Redirect to Paystack payment page
                     window.location.href = paymentData.authorization_url;

@@ -6,8 +6,6 @@ export async function apiGet(path, options = {}) {
 	const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 	
 	try {
-		console.log(`Making API request to: ${API_BASE_URL}${path}`);
-		
 		const token = getToken();
 		const headers = { 
 			'Content-Type': 'application/json'
@@ -18,8 +16,6 @@ export async function apiGet(path, options = {}) {
 			headers.Authorization = `Bearer ${token}`;
 		}
 		
-		console.log(`Request headers:`, headers);
-		
 		const res = await fetch(`${API_BASE_URL}${path}`, {
 			headers,
 			signal: controller.signal,
@@ -27,18 +23,13 @@ export async function apiGet(path, options = {}) {
 		});
 		clearTimeout(timeoutId);
 		
-		console.log(`API response status: ${res.status}`);
-		console.log(`API response headers:`, Object.fromEntries(res.headers.entries()));
-		
 		if (!res.ok) {
 			const errorText = await res.text();
-			console.error(`API error response:`, errorText);
 			throw new Error(`GET ${path} failed: ${res.status} ${res.statusText} - ${errorText}`);
 		}
 		return res.json();
 	} catch (error) {
 		clearTimeout(timeoutId);
-		console.error(`API request failed:`, error);
 		if (error.name === 'AbortError') {
 			throw new Error('Request timeout - server not responding after 30 seconds');
 		}
@@ -54,8 +45,6 @@ export async function apiPost(path, body, options = {}) {
 	const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 	
 	try {
-		console.log(`Making API POST request to: ${API_BASE_URL}${path}`);
-		
 		const token = getToken();
 		const headers = { 
 			'Content-Type': 'application/json'
@@ -66,9 +55,6 @@ export async function apiPost(path, body, options = {}) {
 			headers.Authorization = `Bearer ${token}`;
 		}
 		
-		console.log(`Request headers:`, headers);
-		console.log(`Request body:`, body);
-		
 		const res = await fetch(`${API_BASE_URL}${path}`, {
 			method: 'POST',
 			headers,
@@ -78,18 +64,13 @@ export async function apiPost(path, body, options = {}) {
 		});
 		clearTimeout(timeoutId);
 		
-		console.log(`API POST response status: ${res.status}`);
-		console.log(`API POST response headers:`, Object.fromEntries(res.headers.entries()));
-		
 		if (!res.ok) {
 			const errorText = await res.text();
-			console.error(`API POST error response:`, errorText);
 			throw new Error(`POST ${path} failed: ${res.status} ${res.statusText} - ${errorText}`);
 		}
 		return res.json();
 	} catch (error) {
 		clearTimeout(timeoutId);
-		console.error(`API POST request failed:`, error);
 		if (error.name === 'AbortError') {
 			throw new Error('Request timeout - server not responding after 30 seconds');
 		}
