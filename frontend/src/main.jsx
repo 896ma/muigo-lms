@@ -1,6 +1,6 @@
 import { StrictMode, useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, useParams, Link } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, useParams, useNavigate, Link } from 'react-router-dom'
 import './index.css'
 import AppLayout from './App.jsx'
 import { apiGet } from './lib/api.js'
@@ -48,6 +48,7 @@ const Courses = () => (
 export { Courses }
 
 const Login = () => {
+	const navigate = useNavigate();
 	const [formData, setFormData] = useState({
 		email: '',
 		password: ''
@@ -87,9 +88,9 @@ const Login = () => {
 				localStorage.setItem('user', JSON.stringify(data.user));
 				// Redirect to appropriate page based on role
 				if (data.user.role === 'admin') {
-					window.location.href = '/admin';
+					navigate('/admin');
 				} else {
-					window.location.href = '/portal';
+					navigate('/portal');
 				}
 			} else {
 				setError(data.message || 'Login failed');
@@ -1613,6 +1614,7 @@ function CourseGrid() {
 
 // CourseDetail component that fetches from API
 const CourseDetail = ({ courseSlug }) => {
+	const navigate = useNavigate();
 	const [course, setCourse] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -2225,7 +2227,7 @@ const CourseDetail = ({ courseSlug }) => {
 							
 							{isEnrolled && (
 								<button
-									onClick={() => window.location.href = '/portal'}
+									onClick={() => navigate('/portal')}
 									className="px-8 py-4 text-lg font-bold bg-jungle-500 text-white rounded-lg hover:bg-jungle-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
 								>
 									✅ Go to Portal
@@ -2234,7 +2236,7 @@ const CourseDetail = ({ courseSlug }) => {
 							
 							{!isEnrolled && course.isFree && (
 								<button
-									onClick={() => window.location.href = '/portal'}
+									onClick={() => navigate('/portal')}
 									className="px-8 py-4 text-lg font-bold bg-gray-500 text-white rounded-lg hover:bg-gray-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
 								>
 									✅ Go to Portal
