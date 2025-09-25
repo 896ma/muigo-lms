@@ -64,6 +64,36 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Content Security Policy to allow required external resources (Tailwind CDN, Unsplash, Paystack)
+app.use(
+  helmet.contentSecurityPolicy({
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // needed for small Tailwind config inline script
+        'https://cdn.tailwindcss.com'
+      ],
+      scriptSrcAttr: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: [
+        "'self'",
+        'data:',
+        'https://images.unsplash.com'
+      ],
+      connectSrc: [
+        "'self'",
+        'http://localhost:5000',
+        'https://muigo-farmers-lms.onrender.com',
+        'https://api.paystack.co'
+      ],
+      frameAncestors: ["'self'"],
+      upgradeInsecureRequests: null
+    }
+  })
+);
+
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
   res.status(200).json({ 
