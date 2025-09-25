@@ -1,6 +1,6 @@
 import { StrictMode, useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, useParams } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, useParams, Link } from 'react-router-dom'
 import './index.css'
 import AppLayout from './App.jsx'
 import { apiGet } from './lib/api.js'
@@ -25,8 +25,8 @@ const Home = () => (
 			<h1 className="text-3xl font-bold">Welcome to Farmers LMS</h1>
 			<p className="mt-2">Learn, grow, and thrive with free and premium courses.</p>
 			<div className="mt-4 flex gap-3">
-				<a className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-white text-jungle hover:bg-jungle-50" href="/courses">Browse Courses</a>
-				<a className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-white text-white hover:bg-jungle-600" href="/register">Get Started</a>
+				<Link className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-white text-jungle hover:bg-jungle-50" to="/courses">Browse Courses</Link>
+				<Link className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-white text-white hover:bg-jungle-600" to="/register">Get Started</Link>
 			</div>
 		</div>
 		<Section title="Popular Courses">
@@ -779,9 +779,9 @@ const Admin = () => {
 					</div>
 					<p className="text-gray-600 mb-4">You need to be logged in as an admin to access this page.</p>
 					<div className="space-x-4">
-						<a href="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
+						<Link to="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
 							Login
-						</a>
+						</Link>
 					</div>
 				</div>
 			</Section>
@@ -1245,12 +1245,12 @@ const Portal = () => {
 					</div>
 					<p className="text-gray-600 mb-4">Sign in to view your enrolled courses and track your progress.</p>
 					<div className="space-x-4">
-						<a href="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
+						<Link to="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
 							Login
-						</a>
-						<a href="/register" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-jungle-500 text-jungle-500 hover:bg-jungle-50">
+						</Link>
+						<Link to="/register" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-jungle-500 text-jungle-500 hover:bg-jungle-50">
 							Register
-						</a>
+						</Link>
 					</div>
 				</div>
 			</Section>
@@ -1335,12 +1335,12 @@ const Portal = () => {
 											>
 												View Progress
 											</button>
-											<a 
-												href={`/courses/${enrollment.course?.slug}`}
+											<Link 
+												to={`/courses/${enrollment.course?.slug}`}
 												className="px-3 py-1 bg-jungle-500 text-white text-sm rounded hover:bg-jungle-600 transition-colors text-center"
 											>
 												Continue Learning
-											</a>
+											</Link>
 										</div>
 									</div>
 								</div>
@@ -1349,7 +1349,7 @@ const Portal = () => {
 					) : (
 						<div className="text-center py-8 text-gray-500">
 							<p>You haven't enrolled in any courses yet.</p>
-							<a href="/courses" className="text-jungle-500 hover:underline">Browse available courses</a>
+							<Link to="/courses" className="text-jungle-500 hover:underline">Browse available courses</Link>
 						</div>
 					)}
 				</div>
@@ -1597,12 +1597,12 @@ function CourseGrid() {
 							<div className="text-sm text-gray-600">
 								{course.isFree ? 'Free' : `Ksh ${course.price}`}
 							</div>
-							<a 
-								href={`/courses/${course.slug}`}
+							<Link 
+								to={`/courses/${course.slug}`}
 								className="inline-flex items-center gap-2 rounded-md px-3 py-2 font-medium border border-jungle-500 text-jungle-500 hover:bg-jungle-50"
 							>
 								View
-							</a>
+							</Link>
 						</div>
 					</div>
 				))}
@@ -1969,12 +1969,12 @@ const CourseDetail = ({ courseSlug }) => {
 			<div className="text-center py-8">
 				<h2 className="text-2xl font-bold text-gray-900 mb-4">Course Not Found</h2>
 				<p className="text-gray-600 mb-4">The course you're looking for doesn't exist.</p>
-				<a 
-					href="/courses" 
+				<Link 
+					to="/courses" 
 					className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle text-white hover:bg-jungle-600"
 				>
 					Back to Courses
-				</a>
+				</Link>
 			</div>
 		);
 	}
@@ -2072,12 +2072,12 @@ const CourseDetail = ({ courseSlug }) => {
 								Please log in to enroll in paid courses and track your progress.
 							</p>
 							<div className="mt-3">
-								<a href="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
+								<Link to="/login" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium bg-jungle-500 text-white hover:bg-jungle-600">
 									Login
-								</a>
-								<a href="/register" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-jungle-500 text-jungle-500 hover:bg-jungle-50 ml-2">
+								</Link>
+								<Link to="/register" className="inline-flex items-center gap-2 rounded-md px-4 py-2 font-medium border border-jungle-500 text-jungle-500 hover:bg-jungle-50 ml-2">
 									Register
-								</a>
+								</Link>
 							</div>
 						</div>
 					)}
