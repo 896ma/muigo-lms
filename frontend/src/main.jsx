@@ -1621,6 +1621,7 @@ const CourseDetail = ({ courseSlug }) => {
 	const [enrolling, setEnrolling] = useState(false);
 	const [isEnrolled, setIsEnrolled] = useState(false);
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
+	const [isAdmin, setIsAdmin] = useState(false);
 	const [paymentStatus, setPaymentStatus] = useState(null);
 	const [paymentReference, setPaymentReference] = useState(null);
 
@@ -1629,6 +1630,18 @@ const CourseDetail = ({ courseSlug }) => {
 		const userData = localStorage.getItem('user');
 		const isAuth = !!(token && userData);
 		setIsAuthenticated(isAuth);
+		
+		// Check if user is an admin
+		if (userData) {
+			try {
+				const user = JSON.parse(userData);
+				setIsAdmin(user.role === 'admin');
+			} catch (e) {
+				setIsAdmin(false);
+			}
+		} else {
+			setIsAdmin(false);
+		}
 	};
 
 	const loadCourse = useCallback(async () => {
@@ -1732,6 +1745,12 @@ const CourseDetail = ({ courseSlug }) => {
 	};
 
 	const handleEnroll = async () => {
+		// Prevent admins from enrolling
+		if (isAdmin) {
+			alert('Administrators cannot enroll in courses. Please use a farmer account to enroll.');
+			return;
+		}
+		
 		try {
 			setEnrolling(true);
 			
@@ -2102,6 +2121,15 @@ const CourseDetail = ({ courseSlug }) => {
 						</div>
 					)}
 
+					{isAdmin && !isEnrolled && (
+						<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+							<h4 className="font-semibold text-red-800 mb-2">⚠️ Administrator Account</h4>
+							<p className="text-red-700 text-sm">
+								Administrators cannot enroll in courses. Please use a farmer account to enroll and access course content.
+							</p>
+						</div>
+					)}
+
 					{paymentStatus === 'pending' && (
 						<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between">
@@ -2206,12 +2234,12 @@ const CourseDetail = ({ courseSlug }) => {
 							
 							<button
 								onClick={handleEnroll}
-								disabled={enrolling}
+								disabled={enrolling || isAdmin}
 								className={`px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 transform hover:scale-105 ${
 									course.isFree 
 										? 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl' 
 										: 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl border-4 border-jungle-700'
-								} disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none`}
+								} disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none ${isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
 							>
 								{enrolling ? (
 									<span className="flex items-center gap-2">

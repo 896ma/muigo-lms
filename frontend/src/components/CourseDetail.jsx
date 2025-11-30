@@ -13,6 +13,7 @@ const CourseDetail = () => {
     const [email, setEmail] = useState('');
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const isEnrolledRef = useRef(false);
 
     // Update ref when state changes
@@ -75,6 +76,19 @@ const CourseDetail = () => {
 
     const checkAuthStatus = () => {
         setIsAuthenticated(isAuthed());
+        
+        // Check if user is an admin
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                setIsAdmin(user.role === 'admin');
+            } catch (e) {
+                setIsAdmin(false);
+            }
+        } else {
+            setIsAdmin(false);
+        }
     };
 
     const openLesson = (lesson) => {
@@ -166,6 +180,12 @@ const CourseDetail = () => {
     }, [slug, isAuthenticated]);
 
     const handleEnroll = async () => {
+        // Prevent admins from enrolling
+        if (isAdmin) {
+            alert('Administrators cannot enroll in courses. Please use a farmer account to enroll.');
+            return;
+        }
+        
         // For testing purposes, allow enrollment without authentication
         // In production, uncomment the authentication check below
         /*
@@ -401,6 +421,15 @@ const CourseDetail = () => {
                         </div>
                     )}
 
+                    {isAdmin && !isEnrolled && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                            <h4 className="font-semibold text-red-800 mb-2">⚠️ Administrator Account</h4>
+                            <p className="text-red-700 text-sm">
+                                Administrators cannot enroll in courses. Please use a farmer account to enroll and access course content.
+                            </p>
+                        </div>
+                    )}
+
                     {!isAuthenticated && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                             <h4 className="font-semibold text-blue-800 mb-2">Login Required</h4>
@@ -444,7 +473,7 @@ const CourseDetail = () => {
                             {/* Always show button for testing - remove authentication requirement temporarily */}
                             <button
                                 onClick={handleEnroll}
-                                disabled={enrolling || (!course.isFree && !email)}
+                                disabled={enrolling || isAdmin || (!course.isFree && !email)}
                                 className={`px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 transform hover:scale-105 ${
                                     course.isFree 
                                         ? 'bg-jungle-500 hover:bg-jungle-600 text-white shadow-lg hover:shadow-xl' 

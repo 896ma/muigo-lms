@@ -91,6 +91,14 @@ router.post('/:id/enroll', async (req, res) => {
 					
 					if (token) {
 						const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
+						
+						// Check if user is an admin - admins cannot enroll in courses
+						if (payload.role === 'admin') {
+							return res.status(403).json({ 
+								message: 'Administrators cannot enroll in courses. Please use a farmer account to enroll.' 
+							});
+						}
+						
 						const mongoose = require('mongoose');
 						const userId = new mongoose.Types.ObjectId(payload.id);
 
@@ -162,6 +170,14 @@ router.post('/:id/enroll', async (req, res) => {
 		}
 
 		const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
+		
+		// Check if user is an admin - admins cannot enroll in courses
+		if (payload.role === 'admin') {
+			return res.status(403).json({ 
+				message: 'Administrators cannot enroll in courses. Please use a farmer account to enroll.' 
+			});
+		}
+		
 		const mongoose = require('mongoose');
 		const userId = new mongoose.Types.ObjectId(payload.id);
 
