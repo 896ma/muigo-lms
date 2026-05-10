@@ -133,13 +133,39 @@ app.get('/api/info', (req, res) => {
   });
 });
 
-// Request logging middleware (only in development)
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
+// Debug endpoint — shows env var presence without exposing values
+app.get('/api/debug', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  res.json({
+    timestamp: new Date().toISOString(),
+    node_env: process.env.NODE_ENV || 'not set',
+    port: process.env.PORT || 'not set',
+    env_vars: {
+      MONGO_URI: process.env.MONGO_URI ? `set (${process.env.MONGO_URI.substring(0, 20)}...)` : 'NOT SET',
+      JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'NOT SET',
+      PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY ? 'set' : 'NOT SET',
+      PAYSTACK_PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY ? 'set' : 'NOT SET',
+      FRONTEND_URL: process.env.FRONTEND_URL || 'not set',
+    },
+    database: {
+      state: ['disconnected','connected','connecting','disconnecting'][dbState] || 'unknown',
+      readyState: dbState,
+    },
+    uptime_seconds: Math.floor(process.uptime()),
   });
-}
+});
+
+// Structured request/response logging (always-on for Vercel debugging)
+app.use((req, res, next) => {
+  const start = Date.now();
+  const ts = new Date().toISOString();
+  console.log(`[REQ] ${ts} ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | ip=${req.ip}`);
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    console.log(`[RES] ${new Date().toISOString()} ${req.method} ${req.path} | status=${res.statusCode} | ${ms}ms`);
+  });
+  next();
+});
 
 // routes
 app.use('/api/auth', authRoutes);
