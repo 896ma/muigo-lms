@@ -52,7 +52,7 @@ router.post('/initiate', requireAuth, async (req, res) => {
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);
 
-  const callbackUrl = `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/payment-callback`;
+  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/payment-callback`;
   console.log('Using callback URL:', callbackUrl);
 
   const payload = {
@@ -351,7 +351,7 @@ router.post('/initiate-mpesa', requireAuth, async (req, res) => {
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);
 
-  const callbackUrl = `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/payment-callback`;
+  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/payment-callback`;
   console.log('Using M-Pesa callback URL:', callbackUrl);
 
   const payload = {
