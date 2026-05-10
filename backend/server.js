@@ -1,4 +1,5 @@
-require('dotenv').config({ path: '../.env' });
+const dotenvPath = require('path').resolve(__dirname, '../.env');
+require('dotenv').config({ path: dotenvPath });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -72,8 +73,7 @@ app.use(
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'", // needed for small Tailwind config inline script
-        'https://cdn.tailwindcss.com'
+        "'unsafe-inline'",
       ],
       scriptSrcAttr: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
@@ -169,6 +169,7 @@ console.log('Environment:', process.env.NODE_ENV || 'development');
 console.log('Port:', PORT);
 
 const mongoUri = process.env.MONGO_URI || config.MONGO_URI || 'mongodb://localhost:27017/farmers-lms';
+console.log('MongoDB URI source:', process.env.MONGO_URI ? 'environment variable' : config.MONGO_URI ? 'config.js' : 'localhost fallback');
 
 // Start server first, then connect to database
 const startServer = () => {
