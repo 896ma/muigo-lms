@@ -46,8 +46,8 @@ const corsOptions = {
     const isAllowed = allowedOrigins.some(allowedOrigin => {
       if (allowedOrigin.includes('*')) {
         // Handle wildcard patterns like https://*.vercel.app
-        const pattern = allowedOrigin.replace('*', '');
-        return origin.startsWith(pattern);
+        const regex = new RegExp('^' + allowedOrigin.replace('.', '\\.').replace('*', '.+') + '$');
+        return regex.test(origin);
       }
       return origin === allowedOrigin;
     }) || origin.startsWith('http://localhost:'); // Allow any localhost port for development
