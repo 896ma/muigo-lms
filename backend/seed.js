@@ -4,219 +4,284 @@ const Course = require('./models/course');
 const User = require('./models/user');
 
 const sampleCourses = [
-    {
-        title: 'Soil Health Basics',
-        slug: 'soil-health-basics',
-        description: 'Learn the fundamentals of building and maintaining healthy soil for sustainable farming. This comprehensive course covers soil composition, testing methods, and practical techniques to improve soil fertility.',
-        category: 'Soil Management',
-        coverImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop',
-        price: 0,
-        currency: 'KES',
-        isFree: true,
-        lessons: [
-            {
-                title: 'Introduction to Soil Science',
-                contentHtml: '<h2>What is Soil?</h2><p>Soil is a complex mixture of minerals, organic matter, water, and air that supports plant life...</p>',
-                videoUrl: 'https://example.com/video1',
-                duration: '15 minutes',
-                order: 1
-            },
-            {
-                title: 'Soil Testing Methods',
-                contentHtml: '<h2>How to Test Your Soil</h2><p>Learn various methods to test soil pH, nutrient levels, and composition...</p>',
-                videoUrl: 'https://example.com/video2',
-                duration: '20 minutes',
-                order: 2
-            },
-            {
-                title: 'Improving Soil Fertility',
-                contentHtml: '<h2>Natural Soil Improvement</h2><p>Discover organic methods to enhance soil fertility and structure...</p>',
-                videoUrl: 'https://example.com/video3',
-                duration: '25 minutes',
-                order: 3
-            }
-        ]
-    },
-    {
-        title: 'Irrigation 101',
-        slug: 'irrigation-101',
-        description: 'Master efficient irrigation techniques to optimize water usage and maximize crop yields. Learn about different irrigation systems, water management, and sustainable practices.',
-        category: 'Water Management',
-        coverImage: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?q=80&w=1600&auto=format&fit=crop',
-        price: 18,
-        currency: 'KES',
-        isFree: false,
-        lessons: [
-            {
-                title: 'Understanding Water Needs',
-                contentHtml: '<h2>Plant Water Requirements</h2><p>Learn how different crops have varying water needs throughout their growth cycle...</p>',
-                videoUrl: 'https://example.com/video4',
-                duration: '18 minutes',
-                order: 1
-            },
-            {
-                title: 'Irrigation System Types',
-                contentHtml: '<h2>Choosing the Right System</h2><p>Compare drip, sprinkler, and flood irrigation methods...</p>',
-                videoUrl: 'https://example.com/video5',
-                duration: '22 minutes',
-                order: 2
-            },
-            {
-                title: 'Water Conservation Techniques',
-                contentHtml: '<h2>Saving Water on the Farm</h2><p>Implement strategies to reduce water waste and improve efficiency...</p>',
-                videoUrl: 'https://example.com/video6',
-                duration: '20 minutes',
-                order: 3
-            }
-        ]
-    },
-    {
-        title: 'Organic Pest Control',
-        slug: 'organic-pest-control',
-        description: 'Protect your crops using safe, environmentally friendly pest management strategies. Learn about beneficial insects, natural repellents, and integrated pest management.',
-        category: 'Pest Management',
-        coverImage: 'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?q=80&w=1600&auto=format&fit=crop',
-        price: 15,
-        currency: 'KES',
-        isFree: false,
-        lessons: [
-            {
-                title: 'Identifying Common Pests',
-                contentHtml: '<h2>Know Your Enemy</h2><p>Learn to identify common agricultural pests and their damage patterns...</p>',
-                videoUrl: 'https://example.com/video7',
-                duration: '16 minutes',
-                order: 1
-            },
-            {
-                title: 'Beneficial Insects',
-                contentHtml: '<h2>Nature\'s Pest Controllers</h2><p>Discover how beneficial insects can help control pest populations...</p>',
-                videoUrl: 'https://example.com/video8',
-                duration: '19 minutes',
-                order: 2
-            },
-            {
-                title: 'Natural Pest Repellents',
-                contentHtml: '<h2>Homemade Solutions</h2><p>Create effective pest repellents using common household ingredients...</p>',
-                videoUrl: 'https://example.com/video9',
-                duration: '21 minutes',
-                order: 3
-            }
-        ]
-    },
-    {
-        title: 'Advanced Crop Management',
-        slug: 'advanced-crop-management',
-        description: 'Master advanced techniques for maximizing crop yields and quality. Learn about crop rotation, intercropping, precision farming, and modern agricultural technologies.',
-        category: 'Crop Management',
-        coverImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1600&auto=format&fit=crop',
-        price: 12,
-        currency: 'KES',
-        isFree: false,
-        lessons: [
-            {
-                title: 'Crop Rotation Strategies',
-                contentHtml: '<h2>Planning Your Crop Rotation</h2><p>Learn how to plan effective crop rotations to maintain soil health and prevent pest buildup...</p>',
-                videoUrl: 'https://example.com/video13',
-                duration: '20 minutes',
-                order: 1
-            },
-            {
-                title: 'Intercropping Techniques',
-                contentHtml: '<h2>Growing Multiple Crops Together</h2><p>Discover how to grow different crops together for maximum space utilization and pest control...</p>',
-                videoUrl: 'https://example.com/video14',
-                duration: '18 minutes',
-                order: 2
-            },
-            {
-                title: 'Precision Farming Tools',
-                contentHtml: '<h2>Technology in Agriculture</h2><p>Explore modern tools and technologies that can help optimize your farming operations...</p>',
-                videoUrl: 'https://example.com/video15',
-                duration: '25 minutes',
-                order: 3
-            }
-        ]
-    },
-    {
-        title: 'Market Readiness',
-        slug: 'market-readiness',
-        description: 'Prepare your produce for market success. Learn about packaging, pricing strategies, quality standards, and building relationships with buyers.',
-        category: 'Marketing',
-        coverImage: 'https://images.unsplash.com/photo-1524594081293-190a2fe0baae?q=80&w=1600&auto=format&fit=crop',
-        price: 0,
-        currency: 'KES',
-        isFree: true,
-        lessons: [
-            {
-                title: 'Quality Standards',
-                contentHtml: '<h2>Meeting Market Expectations</h2><p>Understand the quality standards required for different markets...</p>',
-                videoUrl: 'https://example.com/video10',
-                duration: '17 minutes',
-                order: 1
-            },
-            {
-                title: 'Packaging and Presentation',
-                contentHtml: '<h2>Making a Good First Impression</h2><p>Learn effective packaging techniques to attract buyers...</p>',
-                videoUrl: 'https://example.com/video11',
-                duration: '14 minutes',
-                order: 2
-            },
-            {
-                title: 'Pricing Strategies',
-                contentHtml: '<h2>Setting the Right Price</h2><p>Develop pricing strategies that ensure profitability while remaining competitive...</p>',
-                videoUrl: 'https://example.com/video12',
-                duration: '18 minutes',
-                order: 3
-            }
-        ]
-    },
-    {
-        title: 'Sustainable Farming Practices',
-        slug: 'sustainable-farming-practices',
-        description: 'Learn environmentally conscious farming methods that promote long-term sustainability. Discover techniques for reducing environmental impact while maintaining productivity and profitability.',
-        category: 'Sustainability',
-        coverImage: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=1600&auto=format&fit=crop',
-        price: 10,
-        currency: 'KES',
-        isFree: false,
-        lessons: [
-            {
-                title: 'Principles of Sustainable Agriculture',
-                contentHtml: '<h2>Building a Sustainable Future</h2><p>Understand the core principles of sustainable farming and their importance for future generations...</p>',
-                videoUrl: 'https://example.com/video16',
-                duration: '22 minutes',
-                order: 1
-            },
-            {
-                title: 'Conservation Tillage',
-                contentHtml: '<h2>Protecting Soil Structure</h2><p>Learn about reduced tillage methods that preserve soil health and reduce erosion...</p>',
-                videoUrl: 'https://example.com/video17',
-                duration: '19 minutes',
-                order: 2
-            },
-            {
-                title: 'Renewable Energy on the Farm',
-                contentHtml: '<h2>Powering Your Farm Sustainably</h2><p>Explore solar, wind, and other renewable energy options for agricultural operations...</p>',
-                videoUrl: 'https://example.com/video18',
-                duration: '24 minutes',
-                order: 3
-            },
-            {
-                title: 'Carbon Footprint Reduction',
-                contentHtml: '<h2>Minimizing Environmental Impact</h2><p>Implement strategies to reduce your farm\'s carbon footprint and contribute to climate solutions...</p>',
-                videoUrl: 'https://example.com/video19',
-                duration: '20 minutes',
-                order: 4
-            }
-        ]
-    }
+	{
+		title: 'Financial Modelling for Agribusiness',
+		slug: 'financial-modelling-for-agribusiness',
+		description: 'Master practical farm finance with statement reading, ratio analysis, and applied decision models for resilient farm businesses.',
+		category: 'Financial Management',
+		coverImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1600&auto=format&fit=crop',
+		price: 4500,
+		currency: 'KES',
+		isFree: false,
+		lessons: [
+			{
+				title: 'Module 1: Understanding Farm Financial Statements',
+				duration: '45 minutes',
+				order: 1,
+				contentHtml:
+					'<h2>Understanding Farm Financial Statements</h2><p>A financial statement is the story of your farm told in numbers. You should be comfortable with three statements: Income Statement (profit and loss), Balance Sheet (assets, liabilities, equity), and Cash Flow Statement (real money in and out).</p><h3>Core formulas</h3><ul><li>Gross Profit = Revenue - Cost of Goods Sold</li><li>Net Operating Profit = Gross Profit - Operating Expenses</li></ul><p>A profitable farm can still fail if cash inflows are delayed. Always track timing of receipts and payments using a monthly rolling cash flow.</p>'
+			},
+			{
+				title: 'Module 2: Key Financial Ratios for Farmers',
+				duration: '45 minutes',
+				order: 2,
+				contentHtml:
+					'<h2>Key Financial Ratios for Farmers</h2><p>Ratios compress performance into quick decision metrics.</p><ul><li>Current Ratio = Current Assets / Current Liabilities</li><li>Quick Ratio = (Current Assets - Inventory) / Current Liabilities</li><li>Gross Margin % = (Gross Profit / Revenue) x 100</li><li>Debt-to-Equity = Total Liabilities / Total Equity</li></ul><p>Track trend direction across seasons. A worsening trend is an early warning even before a crisis appears in cash position.</p>'
+			},
+			{
+				title: 'End-of-Course Quiz: Financial Modelling',
+				duration: '15 minutes',
+				order: 3,
+				isQuiz: true,
+				contentHtml: '<h2>End-of-Course Quiz: Financial Modelling</h2>',
+				quiz: {
+					questions: [
+						{
+							question: 'A farm has current assets KES 850,000 and current liabilities KES 500,000. What is the current ratio?',
+							options: ['0.59', '1.70', '1.35', '2.00'],
+							answer: 1
+						},
+						{
+							question: 'Revenue is KES 2,000,000 and COGS is KES 1,200,000. What is the gross margin percentage?',
+							options: ['40%', '60%', '20%', '80%'],
+							answer: 0
+						},
+						{
+							question: 'Total costs are KES 400,000 and market price is KES 20/kg. What is the break-even yield?',
+							options: ['8,000 kg', '20,000 kg', '400 kg', '40,000 kg'],
+							answer: 1
+						},
+						{
+							question: 'Which financial statement shows real money flowing in and out of the farm?',
+							options: ['Balance Sheet', 'Income Statement', 'Cash Flow Statement', 'Equity Statement'],
+							answer: 2
+						},
+						{
+							question: 'A worsening Debt-to-Equity ratio over multiple seasons indicates:',
+							options: ['Improving farm profitability', 'Increasing financial risk', 'Better liquidity', 'Higher gross margin'],
+							answer: 1
+						}
+					]
+				}
+			}
+		]
+	},
+	{
+		title: 'Irrigation & Water Management',
+		slug: 'irrigation-water-management',
+		description: 'Master drip, sprinkler, and furrow irrigation systems to maximise yield while conserving water on your farm.',
+		category: 'Water Management',
+		coverImage: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?q=80&w=1600&auto=format&fit=crop',
+		price: 3200,
+		currency: 'KES',
+		isFree: false,
+		lessons: [
+			{
+				title: 'Module 1: Water Sources & Farm Water Budgeting',
+				duration: '40 minutes',
+				order: 1,
+				contentHtml: '<h2>Water Sources & Farm Water Budgeting</h2><p>Identify reliable water sources — boreholes, rivers, rainwater harvesting — and calculate your crop water requirement (ETc = Kc × ETo). A water budget prevents over-irrigation and reduces pumping costs.</p><ul><li>ETo: Reference evapotranspiration (mm/day)</li><li>Kc: Crop coefficient (varies by growth stage)</li><li>ETc = Kc × ETo</li></ul>'
+			},
+			{
+				title: 'Module 2: Drip & Sprinkler Systems',
+				duration: '40 minutes',
+				order: 2,
+				contentHtml: '<h2>Drip & Sprinkler Systems</h2><p>Drip irrigation delivers water directly to the root zone, achieving 90%+ efficiency. Sprinklers suit field crops and orchards. Compare capital cost, maintenance, and suitability per crop type before choosing a system.</p>'
+			},
+			{
+				title: 'Module 3: Scheduling & Automation',
+				duration: '35 minutes',
+				order: 3,
+				contentHtml: '<h2>Scheduling & Automation</h2><p>Use soil moisture sensors or tensiometers to trigger irrigation only when needed. Automate with timers or IoT controllers to reduce labour and prevent under/over-watering.</p>'
+			},
+			{
+				title: 'End-of-Course Quiz: Irrigation & Water Management',
+				duration: '15 minutes',
+				order: 4,
+				isQuiz: true,
+				contentHtml: '<h2>End-of-Course Quiz</h2>',
+				quiz: {
+					questions: [
+						{
+							question: 'A crop has Kc = 1.2 and ETo = 5 mm/day. What is the daily crop water requirement?',
+							options: ['4.2 mm', '6.0 mm', '5.0 mm', '7.2 mm'],
+							answer: 1
+						},
+						{
+							question: 'Which irrigation method has the highest water-use efficiency?',
+							options: ['Flood irrigation', 'Furrow irrigation', 'Drip irrigation', 'Sprinkler irrigation'],
+							answer: 2
+						},
+						{
+							question: 'What device measures soil moisture tension to guide irrigation scheduling?',
+							options: ['Hygrometer', 'Tensiometer', 'Barometer', 'Anemometer'],
+							answer: 1
+						},
+						{
+							question: 'Rainwater harvesting is most effective when combined with:',
+							options: ['Open field flooding', 'Storage tanks and slow-release drip lines', 'Daily manual watering', 'Overhead sprinklers only'],
+							answer: 1
+						},
+						{
+							question: 'Over-irrigation primarily causes:',
+							options: ['Faster crop growth', 'Root aeration and nutrient leaching', 'Higher Kc values', 'Reduced ETo'],
+							answer: 1
+						}
+					]
+				}
+			}
+		]
+	},
+	{
+		title: 'Organic Pest & Disease Control',
+		slug: 'organic-pest-disease-control',
+		description: 'Identify common crop pests and diseases and manage them using safe, low-cost organic methods.',
+		category: 'Crop Protection',
+		coverImage: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=1600&auto=format&fit=crop',
+		price: 0,
+		currency: 'KES',
+		isFree: true,
+		lessons: [
+			{
+				title: 'Module 1: Identifying Common Pests',
+				duration: '35 minutes',
+				order: 1,
+				contentHtml: '<h2>Identifying Common Pests</h2><p>Early identification is the first line of defence. Learn to spot aphids, whiteflies, stem borers, and fall armyworm by their damage patterns. Scout fields weekly — check undersides of leaves and stem bases.</p>'
+			},
+			{
+				title: 'Module 2: Organic Control Methods',
+				duration: '40 minutes',
+				order: 2,
+				contentHtml: '<h2>Organic Control Methods</h2><p>Neem oil, pyrethrin extracts, and chilli-garlic sprays disrupt pest feeding and reproduction without harmful residues. Introduce beneficial insects (ladybirds, parasitic wasps) to naturally suppress populations.</p><ul><li>Neem oil: 2–5 ml/litre water, spray every 7 days</li><li>Chilli-garlic spray: blend 100g chilli + 100g garlic in 1L water, dilute 1:10</li></ul>'
+			},
+			{
+				title: 'Module 3: Disease Prevention & Crop Rotation',
+				duration: '35 minutes',
+				order: 3,
+				contentHtml: '<h2>Disease Prevention & Crop Rotation</h2><p>Fungal and bacterial diseases spread through soil, water splash, and infected seed. Rotate crops by family each season to break disease cycles. Remove and destroy infected plant material immediately.</p>'
+			}
+		]
+	},
+	{
+		title: 'Soil Health & Composting Basics',
+		slug: 'soil-health-composting-basics',
+		description: 'Understand soil structure, fertility, and how to make high-quality compost to boost your farm productivity for free.',
+		category: 'Soil Management',
+		coverImage: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=1600&auto=format&fit=crop',
+		price: 0,
+		currency: 'KES',
+		isFree: true,
+		lessons: [
+			{
+				title: 'Module 1: Understanding Soil Structure',
+				duration: '30 minutes',
+				order: 1,
+				contentHtml: '<h2>Understanding Soil Structure</h2><p>Soil is made of mineral particles, organic matter, water, air, and living organisms. Sandy soils drain fast but hold few nutrients; clay soils retain water but compact easily. Loam — a balanced mix — is ideal for most crops.</p><p>Test your soil texture by the jar test: fill a jar with soil and water, shake, and observe the settling layers after 24 hours.</p>'
+			},
+			{
+				title: 'Module 2: Making Quality Compost',
+				duration: '40 minutes',
+				order: 2,
+				contentHtml: '<h2>Making Quality Compost</h2><p>Good compost requires a carbon-to-nitrogen ratio of 25–30:1. Layer brown materials (dry stalks, cardboard) with green materials (kitchen scraps, fresh manure). Keep the pile moist and turn every 2 weeks. Ready compost is dark, crumbly, and earthy-smelling.</p><ul><li>Browns (carbon): dry leaves, straw, cardboard</li><li>Greens (nitrogen): vegetable scraps, grass clippings, manure</li><li>Ideal moisture: squeeze a handful — a few drops should come out</li></ul>'
+			},
+			{
+				title: 'Module 3: Applying Compost & Cover Crops',
+				duration: '30 minutes',
+				order: 3,
+				contentHtml: '<h2>Applying Compost & Cover Crops</h2><p>Apply 2–5 tonnes of compost per hectare before planting. Incorporate into the top 15 cm of soil. Grow cover crops (legumes, mucuna) in the off-season to fix nitrogen, suppress weeds, and prevent erosion.</p>'
+			}
+		]
+	},
+	{
+		title: 'Sustainable Farming Practices',
+		slug: 'sustainable-farming-practices',
+		description: 'Build a productive and environmentally resilient farm through soil, water, biodiversity, and carbon-smart practice.',
+		category: 'Sustainability',
+		coverImage: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=1600&auto=format&fit=crop',
+		price: 3800,
+		currency: 'KES',
+		isFree: false,
+		lessons: [
+			{
+				title: 'Module 1: Foundations of Sustainable Agriculture',
+				duration: '45 minutes',
+				order: 1,
+				contentHtml:
+					'<h2>Foundations of Sustainable Agriculture</h2><p>Sustainable agriculture balances environmental, economic, and social outcomes. It protects farm productivity over generations.</p>'
+			},
+			{
+				title: 'Module 2: Soil Health Management',
+				duration: '45 minutes',
+				order: 2,
+				contentHtml:
+					'<h2>Soil Health Management</h2><p>Healthy soil is a living ecosystem. Improve structure and water holding through reduced disturbance, living roots, and organic matter retention.</p>'
+			},
+			{
+				title: 'Module 3: Water Management and Conservation',
+				duration: '45 minutes',
+				order: 3,
+				contentHtml:
+					'<h2>Water Management and Conservation</h2><p>Plan for dry seasons by maximizing infiltration, reducing runoff, and improving irrigation efficiency.</p>'
+			},
+			{
+				title: 'Module 4: Biodiversity and Agroecology',
+				duration: '45 minutes',
+				order: 4,
+				contentHtml:
+					'<h2>Biodiversity and Agroecology</h2><p>Mixed systems reduce pest pressure and improve resilience. Use intercropping, hedgerows, and habitat restoration.</p>'
+			},
+			{
+				title: 'Module 5: Carbon Sequestration and Climate Resilience',
+				duration: '45 minutes',
+				order: 5,
+				contentHtml:
+					'<h2>Carbon Sequestration and Climate Resilience</h2><p>Track emissions and sequestration. Carbon-smart management can increase resilience and unlock future market opportunities.</p>'
+			},
+			{
+				title: 'Module Assessment: Sustainable Farming Practices',
+				duration: '20 minutes',
+				order: 6,
+				isQuiz: true,
+				contentHtml: '<h2>Module Assessment: Sustainable Farming Practices</h2>',
+				quiz: {
+					questions: [
+						{
+							question: 'Which farming practice best reduces soil erosion on sloped land?',
+							options: ['Deep ploughing', 'Contour farming and cover crops', 'Monoculture planting', 'Frequent tillage'],
+							answer: 1
+						},
+						{
+							question: 'Intercropping primarily helps by:',
+							options: ['Increasing chemical use', 'Reducing biodiversity', 'Reducing pest pressure and improving resilience', 'Simplifying harvest'],
+							answer: 2
+						},
+						{
+							question: 'Carbon sequestration in farming refers to:',
+							options: ['Burning crop residues', 'Storing carbon in soil and biomass', 'Increasing synthetic fertiliser use', 'Reducing crop diversity'],
+							answer: 1
+						},
+						{
+							question: 'Which practice improves water infiltration and reduces runoff?',
+							options: ['Compacting soil with heavy machinery', 'Removing all vegetation', 'Maintaining organic matter and cover crops', 'Frequent deep tillage'],
+							answer: 2
+						},
+						{
+							question: 'Agroecology is best described as:',
+							options: ['Using only chemical inputs for maximum yield', 'Applying ecological principles to design sustainable farming systems', 'Monoculture farming at large scale', 'Eliminating all pests with pesticides'],
+							answer: 1
+						}
+					]
+				}
+			}
+		]
+	}
 ];
 
 async function seedDatabase() {
     try {
         console.log('🌱 Starting database seeding...');
         
-        // Use the same fallback URI as server.js
-        const mongoUri = process.env.MONGO_URI || 'mongodb+srv://Muigo:lucy17@cluster0.4z7ofja.mongodb.net/farmers-lms';
+        const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/farmers-lms';
         
         // Connect to MongoDB Atlas
         await mongoose.connect(mongoUri);

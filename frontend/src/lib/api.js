@@ -1,5 +1,18 @@
 import { getToken } from './auth.js'
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com');
+
+function resolveApiBaseUrl() {
+	const envUrl = import.meta.env.VITE_API_URL?.trim()
+	if (envUrl) return envUrl
+	if (typeof window !== 'undefined' && window.location?.origin) {
+		// Prefer same-origin API when frontend and backend are served together.
+		const { hostname, origin } = window.location
+		const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1'
+		if (!isLocalhost) return origin
+	}
+	return 'http://localhost:5000'
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
 
 export async function apiGet(path, options = {}) {
 	const controller = new AbortController();
@@ -7,9 +20,7 @@ export async function apiGet(path, options = {}) {
 	
 	try {
 		const token = getToken();
-		const headers = { 
-			'Content-Type': 'application/json'
-		};
+		const headers = {}
 		
 		// Only add Authorization header if we have a valid token
 		if (token && token.trim() !== '') {
@@ -34,7 +45,7 @@ export async function apiGet(path, options = {}) {
 			throw new Error('Request timeout - server not responding after 30 seconds');
 		}
 		if (error.message.includes('Failed to fetch')) {
-			throw new Error('Cannot connect to backend server. Please check your internet connection and try again.');
+			throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Check backend status and VITE_API_URL.`);
 		}
 		throw error;
 	}

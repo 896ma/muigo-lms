@@ -1,0 +1,11 @@
+<svg width="320" height="120" viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="M-Farm logo">
+  <rect width="320" height="120" fill="#f5f7f7"/>
+  <g transform="translate(24,18)">
+    <polygon points="36,0 68,20 68,58 36,78 4,58 4,20" fill="#147a67"/>
+    <polygon points="36,10 58,24 58,54 36,68 14,54 14,24" fill="#1f9a82"/>
+    <path d="M20 53V25l16 11 16-11v28" fill="none" stroke="#d8f3ec" stroke-width="2.5"/>
+    <path d="M28 50V30M36 53V35M44 50V30" stroke="#d8f3ec" stroke-width="2"/>
+  </g>
+  <text x="120" y="48" font-family="Georgia, 'Times New Roman', serif" font-size="46" fill="#145b50" font-weight="700">M-Farm</text>
+  <text x="120" y="78" font-family="Arial, sans-serif" font-size="13" fill="#268a76">Grow your knowledge</text>
+</svg>

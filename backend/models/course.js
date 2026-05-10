@@ -7,6 +7,14 @@ const lessonSchema = new Schema({
   videoUrl: String,
   duration: String,
   order: Number,
+  isQuiz: { type: Boolean, default: false },
+  quiz: {
+    questions: [{
+      question: String,
+      options: [String],
+      answer: Number  // index of correct option
+    }]
+  }
 });
 
 const courseSchema = new Schema({

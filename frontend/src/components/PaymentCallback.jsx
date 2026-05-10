@@ -1,5 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+
+function resolveCallbackApiUrl() {
+	const envUrl = import.meta.env.VITE_API_URL?.trim();
+	if (envUrl) return envUrl.replace(/\/$/, '');
+	// Use same-origin so Vite proxy forwards /api → localhost:5000 on dev,
+	// and on production the frontend and backend share the same origin.
+	if (typeof window !== 'undefined') {
+		return window.location.origin.replace(/\/$/, '');
+	}
+	return '';
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const PaymentCallback = () => {
 	const [searchParams] = useSearchParams();
@@ -7,58 +20,115 @@ const PaymentCallback = () => {
 	const [status, setStatus] = useState('verifying');
 	const [message, setMessage] = useState('Verifying your payment...');
 	const [courseInfo, setCourseInfo] = useState(null);
+	const abortedRef = useRef(false);
+
+	useEffect(() => {
+		abortedRef.current = false;
+		return () => {
+			abortedRef.current = true;
+		};
+	}, []);
 
 	useEffect(() => {
 		const verifyPayment = async () => {
-			try {
-				const reference = searchParams.get('reference');
-				const trxref = searchParams.get('trxref');
-				
-				if (!reference && !trxref) {
-					setStatus('error');
-					setMessage('No payment reference found');
-					return;
-				}
+			const reference = searchParams.get('reference');
+			const trxref = searchParams.get('trxref');
 
-			const paymentRef = reference || trxref;
-
-			// No authentication required for payment verification
-			const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com');
-				
-				const response = await fetch(`${apiUrl}/api/payments/verify/${paymentRef}`, {
-					method: 'GET'
-				});
-
-			const data = await response.json();
-
-			if (response.ok && data.success) {
-					setStatus('success');
-					setMessage(data.message || 'Payment successful! You are now enrolled in the course.');
-					setCourseInfo(data.course);
-					
-					// Store user info if available
-					if (data.user) {
-						localStorage.setItem('user', JSON.stringify(data.user));
-					}
-					
-					// Redirect to specific course or portal after 3 seconds
-					setTimeout(() => {
-						if (data.course && data.course.slug) {
-							// Force refresh enrollment status by adding a timestamp parameter
-							navigate(`/courses/${data.course.slug}?enrolled=true&t=${Date.now()}`);
-						} else {
-							navigate('/portal');
-						}
-					}, 3000);
-				} else {
-					setStatus('error');
-					setMessage(data.message || 'Payment verification failed');
-				}
-			} catch (error) {
-				console.error('Payment verification error:', error);
+			if (!reference && !trxref) {
 				setStatus('error');
-				setMessage('Payment verification failed. Please contact support.');
+				setMessage('No payment reference found');
+				return;
 			}
+
+			const paymentRef = (reference || trxref).trim();
+			const apiUrl = resolveCallbackApiUrl();
+			const MAX_ATTEMPTS = 50;
+			const INTERVAL_MS = 800;
+
+			for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+				if (abortedRef.current) return;
+
+				try {
+					setMessage(
+						attempt === 0
+							? 'Verifying your payment...'
+							: `Still confirming with Paystack (try ${attempt + 1} of ${MAX_ATTEMPTS}). This is normal for M-Pesa.`
+					);
+
+					const response = await fetch(
+						`${apiUrl}/api/payments/verify/${encodeURIComponent(paymentRef)}`,
+						{ method: 'GET', credentials: 'omit' }
+					);
+
+					let data = {};
+					try {
+						data = await response.json();
+					} catch {
+						data = {};
+					}
+
+					if (abortedRef.current) return;
+
+					if (response.ok && data.success) {
+						setStatus('success');
+						setMessage(data.message || 'Payment successful! You are now enrolled in the course.');
+						setCourseInfo(data.course || null);
+
+						if (data.user) {
+							const existingToken = localStorage.getItem('token');
+							localStorage.setItem('user', JSON.stringify(data.user));
+							if (existingToken) localStorage.setItem('token', existingToken);
+						}
+
+						setTimeout(() => {
+							if (data.course?.slug) {
+								navigate(`/courses/${data.course.slug}?enrolled=true&t=${Date.now()}`);
+							} else {
+								navigate('/portal');
+							}
+						}, 300);
+						return;
+					}
+
+					// Backend signals "keep polling" (mobile money still pending)
+					if (data.pending === true) {
+						await sleep(INTERVAL_MS);
+						continue;
+					}
+
+					// Hard failure from Paystack / our API
+					if (response.status === 400) {
+						setStatus('error');
+						setMessage(data.message || 'Payment verification failed');
+						return;
+					}
+
+					// Transient server errors — retry
+					if (response.status >= 500) {
+						await sleep(INTERVAL_MS);
+						continue;
+					}
+
+					// Unknown response — retry a few times then fail
+					if (attempt >= MAX_ATTEMPTS - 1) {
+						setStatus('error');
+						setMessage(data.message || 'Payment verification could not be completed. Please check your portal or contact support.');
+						return;
+					}
+					await sleep(INTERVAL_MS);
+				} catch (error) {
+					console.error('Payment verification error:', error);
+					if (attempt >= MAX_ATTEMPTS - 1) {
+						setStatus('error');
+						setMessage('Payment verification failed. Your payment may still have succeeded — check My Portal or contact support.');
+						return;
+					}
+					await sleep(INTERVAL_MS);
+				}
+			}
+
+			setStatus('error');
+			setMessage('Confirmation is taking longer than expected. If you were charged, open My Portal — your course may already be unlocked.');
 		};
 
 		verifyPayment();
@@ -71,7 +141,7 @@ const PaymentCallback = () => {
 					<>
 						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-jungle-500 mx-auto mb-4"></div>
 						<h2 className="text-xl font-semibold text-gray-800 mb-2">Verifying Payment</h2>
-						<p className="text-gray-600">{message}</p>
+						<p className="text-gray-600 text-sm">{message}</p>
 					</>
 				)}
 
@@ -117,11 +187,17 @@ const PaymentCallback = () => {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
 							</svg>
 						</div>
-						<h2 className="text-xl font-semibold text-red-800 mb-2">Payment Failed</h2>
-						<p className="text-gray-600 mb-4">{message}</p>
+						<h2 className="text-xl font-semibold text-red-800 mb-2">Could not confirm payment</h2>
+						<p className="text-gray-600 mb-4 text-sm">{message}</p>
+						<button
+							onClick={() => navigate('/portal')}
+							className="bg-jungle-500 text-white px-4 py-2 rounded-lg hover:bg-jungle-600 mr-2"
+						>
+							My Portal
+						</button>
 						<button
 							onClick={() => navigate('/courses')}
-							className="bg-jungle-500 text-white px-4 py-2 rounded-lg hover:bg-jungle-600"
+							className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
 						>
 							Back to Courses
 						</button>

@@ -215,6 +215,106 @@ router.post('/:id/enroll', async (req, res) => {
 	}
 });
 
+// GET /api/courses/:id/quiz — returns questions without answers (requires enrollment for paid courses)
+router.get('/:id/quiz', async (req, res) => {
+	try {
+		const course = await Course.findById(req.params.id);
+		if (!course) return res.status(404).json({ message: 'Course not found' });
+
+		// Collect all quiz questions from quiz lessons
+		const quizLessons = (course.lessons || []).filter(l => l.isQuiz && l.quiz && l.quiz.questions && l.quiz.questions.length > 0);
+		if (quizLessons.length === 0) return res.status(404).json({ message: 'No quiz available for this course' });
+
+		const isFree = course.isFree === true || course.price === 0;
+		let canAccess = isFree;
+
+		if (!canAccess && req.headers.authorization) {
+			try {
+				const jwt = require('jsonwebtoken');
+				const token = req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
+				if (token) {
+					const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
+					const found = await Enrollment.findOne({ user: payload.id, course: course._id });
+					canAccess = Boolean(found);
+				}
+			} catch (_) {}
+		}
+
+		if (!canAccess) return res.status(403).json({ message: 'Enrollment required to access quiz' });
+
+		// Return questions without the answer field
+		const questions = quizLessons.flatMap(l =>
+			l.quiz.questions.map((q, i) => ({
+				id: `${l._id}_${i}`,
+				question: q.question,
+				options: q.options
+			}))
+		);
+
+		res.json({ courseId: course._id, title: course.title, questions });
+	} catch (error) {
+		console.error('Error fetching quiz:', error);
+		res.status(500).json({ message: 'Error fetching quiz', error: error.message });
+	}
+});
+
+// POST /api/courses/:id/quiz/submit — grades the quiz and returns results with correct answers for wrong ones
+router.post('/:id/quiz/submit', async (req, res) => {
+	try {
+		const course = await Course.findById(req.params.id);
+		if (!course) return res.status(404).json({ message: 'Course not found' });
+
+		const isFree = course.isFree === true || course.price === 0;
+		let canAccess = isFree;
+
+		if (!canAccess && req.headers.authorization) {
+			try {
+				const jwt = require('jsonwebtoken');
+				const token = req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
+				if (token) {
+					const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
+					const found = await Enrollment.findOne({ user: payload.id, course: course._id });
+					canAccess = Boolean(found);
+				}
+			} catch (_) {}
+		}
+
+		if (!canAccess) return res.status(403).json({ message: 'Enrollment required to submit quiz' });
+
+		const { answers } = req.body; // { [questionId]: selectedOptionIndex }
+		if (!answers) return res.status(400).json({ message: 'Answers are required' });
+
+		const quizLessons = (course.lessons || []).filter(l => l.isQuiz && l.quiz && l.quiz.questions && l.quiz.questions.length > 0);
+		const allQuestions = quizLessons.flatMap(l =>
+			l.quiz.questions.map((q, i) => ({ id: `${l._id}_${i}`, question: q.question, options: q.options, answer: q.answer }))
+		);
+
+		let correct = 0;
+		const results = allQuestions.map(q => {
+			const userAnswer = answers[q.id];
+			const isCorrect = parseInt(userAnswer) === q.answer;
+			if (isCorrect) correct++;
+			return {
+				id: q.id,
+				question: q.question,
+				options: q.options,
+				userAnswer: userAnswer !== undefined ? parseInt(userAnswer) : null,
+				correctAnswer: q.answer,
+				isCorrect
+			};
+		});
+
+		const total = allQuestions.length;
+		const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+		const passed = score >= 70;
+
+		res.json({ score, correct, total, passed, results });
+	} catch (error) {
+		console.error('Error submitting quiz:', error);
+		res.status(500).json({ message: 'Error submitting quiz', error: error.message });
+	}
+});
+
 module.exports = router;
 
 

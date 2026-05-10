@@ -52,7 +52,7 @@ router.post('/initiate', requireAuth, async (req, res) => {
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);
 
-  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'https://muigo-farmers-lms.onrender.com/payment-callback';
+  const callbackUrl = `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/payment-callback`;
   console.log('Using callback URL:', callbackUrl);
 
   const payload = {
@@ -109,102 +109,201 @@ router.post('/webhook', express.json({ type: '*/*' }), async (req, res) => {
   res.json({ status: 'ok' });
 });
 
+async function ensureEnrollmentForPayment(paymentDoc) {
+  if (!paymentDoc || !paymentDoc.user || !paymentDoc.course) return;
+  const userId = paymentDoc.user._id || paymentDoc.user;
+  const courseId = paymentDoc.course._id || paymentDoc.course;
+  const existingEnrollment = await Enrollment.findOne({ user: userId, course: courseId });
+  if (!existingEnrollment) {
+    await Enrollment.create({ user: userId, course: courseId, vip: false });
+    console.log('Enrollment created for user:', userId, 'course:', courseId);
+  }
+}
+
+/** Paystack can still return pending/processing when the browser hits the callback (esp. mobile money). */
+function isPaystackPending(data) {
+  if (!data) return true;
+  const s = (data.status || '').toLowerCase();
+  return s === 'pending' || s === 'ongoing' || s === 'processing' || s === 'send_otp' || s === 'pay_offline';
+}
+
+function isPaystackFailed(data) {
+  if (!data) return false;
+  const s = (data.status || '').toLowerCase();
+  return s === 'failed' || s === 'abandoned' || s === 'reversed' || s === 'timeout';
+}
+
 // 3) Verify via reference - GET endpoint for redirects (no auth required for callback)
 router.get('/verify/:reference', async (req, res) => {
-  const ref = req.params.reference;
-  
+  const ref = String(req.params.reference || '').trim();
+  if (!ref) {
+    return res.status(400).json({ success: false, message: 'Missing payment reference' });
+  }
+
+  // 1) Webhook / prior verify may already have marked success — respond fast without Paystack
   try {
-    const resp = await axios.get(`https://api.paystack.co/transaction/verify/${ref}`, {
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-    });
-    
-    const data = resp.data.data;
-    
-    if(data.status === 'success') {
-      // Mark payment/enroll if not already done
-      const payment = await Payment.findOne({ reference: ref })
+    let payment = await Payment.findOne({ reference: ref })
+      .populate('course', 'title slug _id')
+      .populate('user', 'name email _id');
+
+    if (payment?.status === 'success') {
+      await ensureEnrollmentForPayment(payment);
+      payment = await Payment.findOne({ reference: ref })
         .populate('course', 'title slug _id')
         .populate('user', 'name email _id');
-        
-      console.log('Payment verification - found payment:', payment);
-        
-      if(payment && payment.status !== 'success') {
-         payment.status = 'success';
-         await payment.save();
-         
-         // Check if enrollment already exists
-         const existingEnrollment = await Enrollment.findOne({ 
-           user: payment.user._id, 
-           course: payment.course._id 
-         });
-         
-         if (!existingEnrollment) {
-           console.log('Creating enrollment for user:', payment.user._id, 'course:', payment.course._id);
-           await Enrollment.create({ user: payment.user._id, course: payment.course._id });
-           console.log('Enrollment created successfully');
-         } else {
-           console.log('Enrollment already exists for user:', payment.user._id, 'course:', payment.course._id);
-         }
-      }
-      
-      // Return course and user information for redirect
-      console.log('Returning payment verification response:', {
+      return res.json({
         success: true,
-        course: payment?.course,
-        user: payment?.user,
-        paymentFound: !!payment,
-        courseTitle: payment?.course?.title,
-        courseSlug: payment?.course?.slug
-      });
-      
-      return res.json({ 
-        success: true, 
-        message: 'Payment verified and enrollment completed',
+        message: 'Payment already confirmed. You are enrolled.',
         course: payment?.course,
         user: payment?.user
       });
-    } else {
-      res.status(400).json({ success: false, message: 'Payment not successful' });
     }
+
+    // 2) Ask Paystack (single round-trip; client polls to avoid Render HTTP timeouts)
+    let paystackData;
+    try {
+      const resp = await axios.get(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(ref)}`,
+        {
+          headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+          timeout: 25000
+        }
+      );
+      paystackData = resp.data?.data;
+    } catch (paystackErr) {
+      console.error('Paystack verify HTTP error:', paystackErr.response?.data || paystackErr.message);
+      // Paystack down or slow — if we already have a pending local row, tell client to retry
+      if (payment) {
+        return res.status(200).json({
+          success: false,
+          pending: true,
+          message: 'Could not reach Paystack yet. Please wait — we will keep checking.'
+        });
+      }
+      throw paystackErr;
+    }
+
+    if (isPaystackPending(paystackData)) {
+      return res.status(200).json({
+        success: false,
+        pending: true,
+        paystackStatus: paystackData?.status,
+        message: 'Payment is still being confirmed by your provider. This page will keep checking.'
+      });
+    }
+
+    if (isPaystackFailed(paystackData)) {
+      return res.status(400).json({
+        success: false,
+        message: paystackData?.gateway_response || 'Payment was not completed'
+      });
+    }
+
+    if (paystackData?.status !== 'success') {
+      return res.status(200).json({
+        success: false,
+        pending: true,
+        paystackStatus: paystackData?.status,
+        message: 'Waiting for payment confirmation...'
+      });
+    }
+
+    // 3) Success — resolve or create payment row, then enroll
+    payment = await Payment.findOne({ reference: ref })
+      .populate('course', 'title slug _id')
+      .populate('user', 'name email _id');
+
+    let meta = paystackData.metadata || {};
+    if (typeof meta === 'string') {
+      try {
+        meta = JSON.parse(meta);
+      } catch {
+        meta = {};
+      }
+    }
+    const metaUserId = meta.userId || meta.user_id;
+    const metaCourseId = meta.courseId || meta.course_id;
+
+    if (!payment && metaUserId && metaCourseId) {
+      try {
+        payment = await Payment.create({
+          user: metaUserId,
+          course: metaCourseId,
+          amount: (paystackData.amount || 0) / 100,
+          currency: paystackData.currency || 'KES',
+          provider: paystackData.channel || 'paystack',
+          reference: ref,
+          status: 'success',
+          metadata: meta
+        });
+        payment = await Payment.findOne({ reference: ref })
+          .populate('course', 'title slug _id')
+          .populate('user', 'name email _id');
+      } catch (createErr) {
+        console.error('Could not create payment from Paystack metadata:', createErr);
+      }
+    }
+
+    if (payment) {
+      if (payment.status !== 'success') {
+        payment.status = 'success';
+        await payment.save();
+      }
+      await ensureEnrollmentForPayment(payment);
+      payment = await Payment.findOne({ reference: ref })
+        .populate('course', 'title slug _id')
+        .populate('user', 'name email _id');
+    }
+
+    let courseOut = payment?.course;
+    let userOut = payment?.user;
+    if ((!courseOut || !userOut) && metaUserId && metaCourseId) {
+      try {
+        courseOut = courseOut || (await Course.findById(metaCourseId).select('title slug _id'));
+        userOut = userOut || (await User.findById(metaUserId).select('name email _id'));
+        if (courseOut && userOut) {
+          await ensureEnrollmentForPayment({ user: userOut, course: courseOut });
+        }
+      } catch (e) {
+        console.error('Metadata fallback enrollment:', e.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'Payment verified and enrollment completed',
+      course: courseOut,
+      user: userOut
+    });
   } catch (err) {
     console.error('Payment verification error:', err.response?.data || err.message);
-    
-    // If Paystack verification fails, check if we have a local payment record
+
     try {
       const payment = await Payment.findOne({ reference: ref })
         .populate('course', 'title slug _id')
         .populate('user', 'name email _id');
-        
-      if (payment) {
-        console.log('Found local payment record despite Paystack error:', payment);
-        
-        // Mark as success and create enrollment if needed
-        if (payment.status !== 'success') {
-          payment.status = 'success';
-          await payment.save();
-          
-          const existingEnrollment = await Enrollment.findOne({ 
-            user: payment.user, 
-            course: payment.course 
-          });
-          
-          if (!existingEnrollment) {
-            await Enrollment.create({ user: payment.user, course: payment.course });
-          }
-        }
-        
-        return res.json({ 
-          success: true, 
+
+      if (payment?.status === 'success') {
+        await ensureEnrollmentForPayment(payment);
+        return res.json({
+          success: true,
           message: 'Payment verified locally and enrollment completed',
           course: payment.course,
           user: payment.user
         });
       }
+      if (payment) {
+        return res.status(200).json({
+          success: false,
+          pending: true,
+          message: 'Temporary verification issue. Retrying usually fixes this.'
+        });
+      }
     } catch (localErr) {
-      console.error('Local payment lookup also failed:', localErr);
+      console.error('Local payment lookup failed:', localErr);
     }
-    
-    res.status(500).json({ success: false, message: 'Verification failed', error: err.message });
+
+    return res.status(500).json({ success: false, message: 'Verification failed', error: err.message });
   }
 });
 
@@ -252,7 +351,7 @@ router.post('/initiate-mpesa', requireAuth, async (req, res) => {
   // convert price to smallest unit e.g. *100
   const amountInKobo = Math.round(course.price * 100);
 
-  const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'https://muigo-farmers-lms.onrender.com/payment-callback';
+  const callbackUrl = `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/payment-callback`;
   console.log('Using M-Pesa callback URL:', callbackUrl);
 
   const payload = {

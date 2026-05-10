@@ -1,7 +1,95 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiGet, apiPost } from '../lib/api.js';
+import { apiGet, apiPost, API_BASE_URL } from '../lib/api.js';
 import { isAuthed } from '../lib/auth.js';
+
+// Inline quiz component shown when user clicks a quiz lesson
+const QuizModal = ({ lesson, onClose }) => {
+    const questions = lesson.quiz?.questions || [];
+    const [answers, setAnswers] = useState({});
+    const [submitted, setSubmitted] = useState(false);
+
+    const score = submitted
+        ? questions.filter((q, i) => answers[i] === q.answer).length
+        : 0;
+
+    if (!questions.length) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-gray-900">{lesson.title}</h2>
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                    </div>
+
+                    {!submitted ? (
+                        <>
+                            <div className="space-y-6">
+                                {questions.map((q, qi) => (
+                                    <div key={qi} className="border border-gray-200 rounded-lg p-4">
+                                        <p className="font-medium text-gray-800 mb-3">{qi + 1}. {q.question}</p>
+                                        <div className="space-y-2">
+                                            {q.options.map((opt, oi) => (
+                                                <label key={oi} className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${answers[qi] === oi ? 'bg-jungle-50 border border-jungle-300' : 'hover:bg-gray-50'}`}>
+                                                    <input
+                                                        type="radio"
+                                                        name={`q${qi}`}
+                                                        checked={answers[qi] === oi}
+                                                        onChange={() => setAnswers(a => ({ ...a, [qi]: oi }))}
+                                                        className="accent-jungle-500"
+                                                    />
+                                                    <span className="text-gray-700">{opt}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setSubmitted(true)}
+                                disabled={Object.keys(answers).length < questions.length}
+                                className="mt-6 w-full py-3 bg-jungle-500 text-white font-semibold rounded-lg hover:bg-jungle-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Submit Answers
+                            </button>
+                        </>
+                    ) : (
+                        <div className="text-center py-4">
+                            <div className={`text-5xl font-bold mb-2 ${score >= questions.length * 0.7 ? 'text-green-500' : 'text-orange-500'}`}>
+                                {score}/{questions.length}
+                            </div>
+                            <p className="text-gray-600 mb-6">
+                                {score >= questions.length * 0.7 ? '🎉 Well done! You passed.' : '📚 Review the material and try again.'}
+                            </p>
+                            <div className="space-y-4 text-left mb-6">
+                                {questions.map((q, qi) => {
+                                    const correct = answers[qi] === q.answer;
+                                    return (
+                                        <div key={qi} className={`p-3 rounded-lg border ${correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                            <p className="font-medium text-sm text-gray-800">{qi + 1}. {q.question}</p>
+                                            <p className="text-sm mt-1">
+                                                {correct
+                                                    ? <span className="text-green-700">✓ Correct: {q.options[q.answer]}</span>
+                                                    : <><span className="text-red-600">✗ Your answer: {q.options[answers[qi]]}</span><br /><span className="text-green-700">Correct: {q.options[q.answer]}</span></>
+                                                }
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="flex gap-3 justify-center">
+                                <button onClick={() => { setAnswers({}); setSubmitted(false); }} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Retry</button>
+                                <button onClick={onClose} className="px-4 py-2 bg-jungle-500 text-white rounded-lg hover:bg-jungle-600">Close</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const CourseDetail = () => {
     const { slug } = useParams();
@@ -15,6 +103,7 @@ const CourseDetail = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const isEnrolledRef = useRef(false);
+    const [quizLesson, setQuizLesson] = useState(null);
 
     // Update ref when state changes
     useEffect(() => {
@@ -24,49 +113,37 @@ const CourseDetail = () => {
     useEffect(() => {
         loadCourse();
         checkAuthStatus();
-        
-        // Check if user just completed payment (has enrolled=true in URL)
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('enrolled') === 'true') {
-            // Wait a bit for backend to process enrollment, then check status
-            setTimeout(() => {
-                checkEnrollmentStatus();
-            }, 2000);
-        }
     }, [slug]);
 
-    // Refresh enrollment status when component mounts (useful after payment)
+    // Refresh enrollment status when course loads (handles post-payment redirect with ?enrolled=true)
     useEffect(() => {
-        if (course && isAuthenticated && !course.isFree) {
-            checkEnrollmentStatus();
+        if (!course || course.isFree) return;
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('enrolled') === 'true') {
+            // Retry a couple of times to handle backend propagation delay
+            checkEnrollmentStatus(0);
+        } else if (isAuthenticated) {
+            checkEnrollmentStatus(0);
         }
     }, [course, isAuthenticated]);
 
     const checkEnrollmentStatus = useCallback(async (retryCount = 0) => {
+        if (!course) return;
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com')}/api/enrollments/me`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            if (!token) return;
+            const response = await fetch(`${API_BASE_URL}/api/enrollments/me`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });
             
             if (response.ok) {
                 const enrollments = await response.json();
-                const isEnrolledInCourse = enrollments.some(enrollment => 
-                    enrollment.course && enrollment.course._id === course._id
-                );
-                setIsEnrolled(isEnrolledInCourse);
+                const enrolled = enrollments.some(e => e.course && e.course._id === course._id);
+                setIsEnrolled(enrolled);
                 
-                // If not enrolled and we just came from payment, retry once more after a delay
-                if (!isEnrolledInCourse && retryCount === 0) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.get('enrolled') === 'true') {
-                        setTimeout(() => {
-                            checkEnrollmentStatus(1);
-                        }, 3000);
-                    }
+                // Retry once more if coming from payment and not yet enrolled (backend may lag)
+                if (!enrolled && retryCount < 2) {
+                    setTimeout(() => checkEnrollmentStatus(retryCount + 1), 3000);
                 }
             }
         } catch (error) {
@@ -92,6 +169,10 @@ const CourseDetail = () => {
     };
 
     const openLesson = (lesson) => {
+        if (lesson.isQuiz && lesson.quiz?.questions?.length) {
+            setQuizLesson(lesson);
+            return;
+        }
         if (lesson.contentHtml) {
             const lessonWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
             lessonWindow.document.write(`
@@ -142,33 +223,34 @@ const CourseDetail = () => {
             if (data.isFree) {
                 // Free courses are always accessible
                 setIsEnrolled(true);
-            } else if (isAuthenticated) {
-                // For paid courses, check if user is enrolled
-                try {
-                    const token = localStorage.getItem('token');
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://muigo-farmers-lms.onrender.com')}/api/enrollments/me`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
+            } else {
+                // For paid courses, check token directly (don't rely on isAuthenticated state which may not be set yet)
+                const token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/enrollments/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const enrollments = await response.json();
+                            const isEnrolledInCourse = enrollments.some(enrollment => 
+                                enrollment.course && enrollment.course._id === data._id
+                            );
+                            setIsEnrolled(isEnrolledInCourse);
+                        } else {
+                            setIsEnrolled(false);
                         }
-                    });
-                    
-                    if (response.ok) {
-                        const enrollments = await response.json();
-                        const isEnrolledInCourse = enrollments.some(enrollment => 
-                            enrollment.course && enrollment.course._id === data._id
-                        );
-                        setIsEnrolled(isEnrolledInCourse);
-                    } else {
+                    } catch (error) {
+                        console.error('Error checking enrollment:', error);
                         setIsEnrolled(false);
                     }
-                } catch (error) {
-                    console.error('Error checking enrollment:', error);
+                } else {
                     setIsEnrolled(false);
                 }
-            } else {
-                // Not authenticated and not free course
-                setIsEnrolled(false);
             }
             
             // Course loaded successfully
@@ -177,7 +259,7 @@ const CourseDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [slug, isAuthenticated]);
+    }, [slug]);
 
     const handleEnroll = async () => {
         // Prevent admins from enrolling
@@ -382,7 +464,7 @@ const CourseDetail = () => {
                                             )}
                                         </div>
                                         {isEnrolled ? (
-                                            <span className="text-green-600 text-sm">✓ Click to open</span>
+                                            <span className="text-green-600 text-sm">{lesson.isQuiz ? '📝 Take Quiz' : '✓ Click to open'}</span>
                                         ) : (
                                             <span className="text-gray-400 text-sm">🔒 Locked</span>
                                         )}
@@ -547,6 +629,7 @@ const CourseDetail = () => {
                 </div>
             </div>
         </div>
+        {quizLesson && <QuizModal lesson={quizLesson} onClose={() => setQuizLesson(null)} />}
     );
 };
 

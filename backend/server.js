@@ -96,11 +96,23 @@ app.use(
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbConnected = dbState === 1;
+  const dbStates = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      connected: dbConnected,
+      state: dbStates[dbState] || 'unknown'
+    }
   });
 });
 
@@ -169,8 +181,11 @@ const startServer = () => {
   });
 };
 
-// Try to connect to MongoDB
-mongoose.connect(mongoUri)
+// Try to connect to MongoDB with a short timeout so API can still boot
+mongoose.connect(mongoUri, {
+  serverSelectionTimeoutMS: 8000,
+  connectTimeoutMS: 8000,
+})
   .then(() => {
     console.log('✅ MongoDB connected successfully');
     startServer();

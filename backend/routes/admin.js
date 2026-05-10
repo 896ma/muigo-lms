@@ -2,7 +2,9 @@ const express = require('express');
 const User = require('../models/user');
 const Course = require('../models/course');
 const Enrollment = require('../models/Enrollment');
+const Payment = require('../models/payment');
 const requireAuth = require('../middleware/auth');
+const requireAdmin = require('../middleware/admin');
 
 const router = express.Router();
 
@@ -11,7 +13,7 @@ router.get('/health', (req, res) => {
 });
 
 // Get dashboard statistics
-router.get('/stats', requireAuth, async (req, res) => {
+router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const totalUsers = await User.countDocuments();
 		const totalCourses = await Course.countDocuments();
@@ -31,7 +33,7 @@ router.get('/stats', requireAuth, async (req, res) => {
 });
 
 // Get all users
-router.get('/users', requireAuth, async (req, res) => {
+router.get('/users', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const users = await User.find({}, 'name email phone farmLocation role createdAt').sort({ createdAt: -1 });
 		res.json(users);
@@ -42,7 +44,7 @@ router.get('/users', requireAuth, async (req, res) => {
 });
 
 // Get single user
-router.get('/users/:id', requireAuth, async (req, res) => {
+router.get('/users/:id', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const user = await User.findById(req.params.id).select('-passwordHash');
 		if (!user) {
@@ -56,7 +58,7 @@ router.get('/users/:id', requireAuth, async (req, res) => {
 });
 
 // Create new user
-router.post('/users', requireAuth, async (req, res) => {
+router.post('/users', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const { name, email, phone, farmLocation, role = 'farmer' } = req.body;
 		
@@ -84,7 +86,7 @@ router.post('/users', requireAuth, async (req, res) => {
 });
 
 // Update user
-router.put('/users/:id', requireAuth, async (req, res) => {
+router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const { name, email, phone, farmLocation, role } = req.body;
 		
@@ -101,12 +103,12 @@ router.put('/users/:id', requireAuth, async (req, res) => {
 			}
 		}
 
-		// Update user fields
-		if (name) user.name = name;
-		if (email) user.email = email;
-		if (phone) user.phone = phone;
-		if (farmLocation) user.farmLocation = farmLocation;
-		if (role) user.role = role;
+		// Update user fields — allow clearing optional fields with empty string
+		if (name !== undefined) user.name = name;
+		if (email !== undefined) user.email = email;
+		user.phone = phone !== undefined ? phone : user.phone;
+		user.farmLocation = farmLocation !== undefined ? farmLocation : user.farmLocation;
+		if (role !== undefined) user.role = role;
 
 		await user.save();
 		res.json({ message: 'User updated successfully', user });
@@ -117,7 +119,7 @@ router.put('/users/:id', requireAuth, async (req, res) => {
 });
 
 // Delete user
-router.delete('/users/:id', requireAuth, async (req, res) => {
+router.delete('/users/:id', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const user = await User.findById(req.params.id);
 		if (!user) {
@@ -138,7 +140,7 @@ router.delete('/users/:id', requireAuth, async (req, res) => {
 });
 
 // Get all courses for admin
-router.get('/courses', requireAuth, async (req, res) => {
+router.get('/courses', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const courses = await Course.find().sort({ createdAt: -1 });
 		res.json(courses);
@@ -149,7 +151,7 @@ router.get('/courses', requireAuth, async (req, res) => {
 });
 
 // Get single course for admin
-router.get('/courses/:id', requireAuth, async (req, res) => {
+router.get('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const course = await Course.findById(req.params.id);
 		if (!course) {
@@ -163,7 +165,7 @@ router.get('/courses/:id', requireAuth, async (req, res) => {
 });
 
 // Create new course
-router.post('/courses', requireAuth, async (req, res) => {
+router.post('/courses', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const { title, description, category, coverImage, price, currency = 'KES', isFree, lessons } = req.body;
 		
@@ -198,7 +200,7 @@ router.post('/courses', requireAuth, async (req, res) => {
 });
 
 // Update course
-router.put('/courses/:id', requireAuth, async (req, res) => {
+router.put('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const { title, description, category, coverImage, price, currency, isFree, lessons } = req.body;
 		
@@ -207,19 +209,26 @@ router.put('/courses/:id', requireAuth, async (req, res) => {
 			return res.status(404).json({ message: 'Course not found' });
 		}
 
-		// Update course fields
-		if (title) {
+		// Update slug if title changed, and check for conflicts
+		if (title !== undefined) {
 			course.title = title;
-			// Update slug if title changed
-			course.slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+			const newSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+			if (newSlug !== course.slug) {
+				const conflict = await Course.findOne({ slug: newSlug, _id: { $ne: course._id } });
+				if (conflict) {
+					return res.status(400).json({ message: 'Another course with this title already exists' });
+				}
+				course.slug = newSlug;
+			}
 		}
-		if (description) course.description = description;
-		if (category) course.category = category;
-		if (coverImage) course.coverImage = coverImage;
+		// Allow clearing optional fields with empty string
+		if (description !== undefined) course.description = description;
+		if (category !== undefined) course.category = category;
+		if (coverImage !== undefined) course.coverImage = coverImage;
 		if (price !== undefined) course.price = price;
-		if (currency) course.currency = currency;
+		if (currency !== undefined) course.currency = currency;
 		if (isFree !== undefined) course.isFree = isFree;
-		if (lessons) course.lessons = lessons;
+		if (lessons !== undefined) course.lessons = lessons;
 
 		await course.save();
 		res.json({ message: 'Course updated successfully', course });
@@ -230,7 +239,7 @@ router.put('/courses/:id', requireAuth, async (req, res) => {
 });
 
 // Delete course
-router.delete('/courses/:id', requireAuth, async (req, res) => {
+router.delete('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
 	try {
 		const course = await Course.findById(req.params.id);
 		if (!course) {
@@ -254,7 +263,41 @@ router.delete('/courses/:id', requireAuth, async (req, res) => {
 	}
 });
 
+// Export data for PDF generation
+// Query params: type=users|payments|all, courseId (optional), dateFrom, dateTo
+router.get('/export', requireAuth, requireAdmin, async (req, res) => {
+	try {
+		const { type = 'all', courseId, dateFrom, dateTo } = req.query;
+		const result = {};
+
+		const dateFilter = {};
+		if (dateFrom) dateFilter.$gte = new Date(dateFrom);
+		if (dateTo) dateFilter.$lte = new Date(new Date(dateTo).setHours(23, 59, 59, 999));
+
+		if (type === 'users' || type === 'all') {
+			const userQuery = {};
+			if (dateFrom || dateTo) userQuery.createdAt = dateFilter;
+			result.users = await User.find(userQuery, 'name email phone farmLocation role createdAt').sort({ createdAt: -1 }).lean();
+		}
+
+		if (type === 'payments' || type === 'all') {
+			const paymentQuery = { status: 'success' };
+			if (courseId) paymentQuery.course = courseId;
+			if (dateFrom || dateTo) paymentQuery.createdAt = dateFilter;
+			result.payments = await Payment.find(paymentQuery)
+				.populate('user', 'name email phone farmLocation')
+				.populate('course', 'title category price currency')
+				.sort({ createdAt: -1 })
+				.lean();
+		}
+
+		result.exportedAt = new Date().toISOString();
+		result.filters = { type, courseId, dateFrom, dateTo };
+		res.json(result);
+	} catch (error) {
+		console.error('Export error:', error);
+		res.status(500).json({ message: 'Export failed', error: error.message });
+	}
+});
+
 module.exports = router;
-
-
-
